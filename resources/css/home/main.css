@@ -1,0 +1,71 @@
+/* resources/css/home/main.css */
+/* MAIN STYLES - IMPORTS ONLY */
+
+/* Import all modular CSS files */
+@import url('./video-card.css');
+@import url('./dropdown-menu.css');
+@import url('./video-stats.css');
+@import url('./comment.css');
+
+/* Main Container Styles */
+.home-video-grid {
+    padding: 1rem;
+    max-width: 1920px;
+    margin: 0 auto;
+}
+
+/* Video Grid Layout */
+.video-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    padding: 0.5rem;
+}
+
+/* ===== TOAST NOTIFICATION - HIDDEN ===== */
+.toast {
+    display: none !important;
+}
+
+.toast.show {
+    display: none !important;
+}
+
+/* Dropdown backdrop overlay for mobile */
+.menu-backdrop {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .menu-backdrop {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 99998;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .menu-backdrop.active {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .home-video-grid {
+        padding: 0.5rem;
+    }
+    
+    .video-grid-container {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1rem;
+        padding: 0.25rem;
+    }
+}

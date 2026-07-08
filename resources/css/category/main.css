@@ -1,0 +1,13 @@
+/* resources/css/category/main.css */
+/* Category Navigation Main CSS Import */
+
+@import url('./base.css');
+@import url('./animations.css');
+@import url('./items.css');
+@import url('./colors.css');
+@import url('./responsive.css');
+@import url('./dark-mode.css');
+@import url('./accessibility.css');
+@import url('./utilities.css');
+
+/* Note: Import this file in app.css */

@@ -1,0 +1,93 @@
+/* resources/css/category/animations.css */
+/* Animation Keyframes */
+
+@keyframes slideDownFade {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes activePulse {
+    0%, 100% {
+        box-shadow: 
+            0 4px 16px var(--category-shadow-light, rgba(239, 68, 68, 0.3)),
+            0 2px 8px var(--category-shadow-dark, rgba(219, 39, 119, 0.2)),
+            inset 0 2px 4px rgba(255, 255, 255, 0.2);
+    }
+    50% {
+        box-shadow: 
+            0 4px 20px var(--category-shadow-light, rgba(239, 68, 68, 0.4)),
+            0 2px 12px var(--category-shadow-dark, rgba(219, 39, 119, 0.3)),
+            inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    }
+}
+
+/* Pron specific animations */
+@keyframes sparkle {
+    0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 0px var(--category-color, #ff6b6b));
+    }
+    50% {
+        transform: scale(1.15);
+        filter: drop-shadow(0 0 6px var(--category-color, #ff6b6b));
+    }
+}
+
+@keyframes sparkleMobile {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes pronPulse {
+    0%, 100% {
+        box-shadow: 
+            0 4px 20px rgba(255, 107, 107, 0.4),
+            0 2px 12px rgba(255, 71, 87, 0.3),
+            inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    }
+    50% {
+        box-shadow: 
+            0 4px 25px rgba(255, 107, 107, 0.6),
+            0 2px 16px rgba(255, 71, 87, 0.4),
+            inset 0 2px 4px rgba(255, 255, 255, 0.4);
+    }
+}
+
+@keyframes loadingShimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}

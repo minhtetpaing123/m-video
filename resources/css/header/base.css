@@ -1,0 +1,36 @@
+/* resources/css/header/base.css */
+/* Base Header Styles & Structure */
+
+/* Header Container Styles */
+.sticky-header {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    width: 100%;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    animation: fadeInDown 0.3s ease-out;
+}
+
+.header-container {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 4rem;
+    position: relative;
+}
+
+/* Right Section Container */
+.right-section-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+}

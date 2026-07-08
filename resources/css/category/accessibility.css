@@ -1,0 +1,49 @@
+/* resources/css/category/accessibility.css */
+/* Accessibility Features */
+
+.category-item:focus {
+    outline: 2px solid var(--category-color, #ef4444);
+    outline-offset: 2px;
+}
+
+.category-item:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.category-item:focus-visible {
+    outline: 2px solid var(--category-color, #ef4444);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+/* Special focus for Pron */
+.category-item[data-category="pron"]:focus-visible {
+    outline: 3px solid var(--category-color, #ff6b6b);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.1);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .category-item {
+        border-width: 3px;
+    }
+    
+    .category-item.active {
+        border: 3px solid white;
+    }
+}
+
+/* Inverted colors mode */
+@media (inverted-colors: inverted) {
+    .category-item {
+        background-color: black;
+        color: white;
+        border-color: white;
+    }
+    
+    .category-item.active {
+        background-color: white;
+        color: black;
+    }
+}

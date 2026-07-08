@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Style Video Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        /* Telegram ရဲ့ Dark Theme အတိုင်း */
+        .telegram-player {
+            max-width: 400px;
+            width: 100%;
+            background: #000000;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        /* Video Container */
+        .video-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            cursor: pointer;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+        }
+
+        /* Video ပေါ်က Overlay Controls (Telegram အတိုင်း) */
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.1) 60%, transparent 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+
+        .video-container:hover .video-overlay,
+        .video-container:active .video-overlay {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Top Bar - Telegram အတိုင်း */
+        .top-bar {
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .video-title {
+            font-size: 16px;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .video-title::before {
+            content: "📹";
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 16px;
+        }
+
+        .top-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            transition: all 0.2s ease;
+        }
+
+        .top-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Center Play Button - Telegram အတိုင်း ကြီးကြီး */
+        .center-play {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 64px;
+            height: 64px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            color: white;
+            font-size: 32px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .video-container:hover .center-play,
+        .video-container.paused .center-play {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .center-play:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            background: rgba(0, 136, 255, 0.8);
+        }
+
+        /* Bottom Controls - Telegram အတိုင်း */
+        .bottom-controls {
+            padding: 16px;
+            background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%);
+        }
+
+        /* Progress Bar - Telegram အတိုင်း */
+        .progress-section {
+            margin-bottom: 12px;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .progress-buffered {
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            position: absolute;
+            width: 0%;
+        }
+
+        .progress-played {
+            height: 100%;
+            background: #0088ff;
+            border-radius: 2px;
+            position: absolute;
+            width: 0%;
+            z-index: 1;
+        }
+
+        .progress-handle {
+            width: 12px;
+            height: 12px;
+            background: #0088ff;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+
+        .progress-container:hover .progress-handle {
+            opacity: 1;
+        }
+
+        .time-info {
+            display: flex;
+            justify-content: space-between;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .current-time {
+            color: white;
+        }
+
+        /* Controls Row - Telegram အတိုင်း */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: white;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .control-btn.small {
+            font-size: 20px;
+        }
+
+        /* Volume Control - Telegram အတိုင်း */
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+
+        .volume-slider-container {
+            width: 0;
+            overflow: hidden;
+            transition: width 0.2s ease;
+            display: flex;
+            align-items: center;
+        }
+
+        .volume-control:hover .volume-slider-container {
+            width: 80px;
+            margin-right: 8px;
+        }
+
+        .volume-slider {
+            width: 80px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .volume-level {
+            height: 100%;
+            background: #0088ff;
+            border-radius: 2px;
+            width: 100%;
+        }
+
+        .volume-slider input {
+            position: absolute;
+            top: -6px;
+            left: 0;
+            width: 100%;
+            height: 16px;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Time Display - Telegram အတိုင်း */
+        .time-separator {
+            margin: 0 2px;
+            opacity: 0.5;
+        }
+
+        /* Quality/Speed Selector - Telegram အတိုင်း */
+        .quality-selector {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .quality-selector:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .quality-dropdown {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            background: #1c1c1e;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 8px;
+            min-width: 120px;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .quality-selector:hover .quality-dropdown {
+            display: block;
+        }
+
+        .quality-option {
+            padding: 8px 16px;
+            color: white;
+            font-size: 13px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .quality-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .quality-option.active {
+            color: #0088ff;
+        }
+
+        /* Picture-in-Picture mode indicator */
+        .pip-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Loading Spinner - Telegram အတိုင်း */
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #0088ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Duration Badge (for thumbnail) */
+        .duration-badge {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="telegram-player">
+        <div class="video-container" id="videoContainer">
+            <video id="video" preload="metadata">
+                <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+                <!-- ဒီနေရာမှာ ကိုယ့် Video URL ထည့်လို့ရပါတယ် -->
+            </video>
+
+            <!-- Loading Spinner -->
+            <div class="loading-spinner" id="loadingSpinner"></div>
+
+            <!-- Video Overlay (Telegram အတိုင်း) -->
+            <div class="video-overlay">
+                <!-- Top Bar -->
+                <div class="top-bar">
+                    <div class="video-title">
+                        Telegram Video
+                    </div>
+                    <div class="top-actions">
+                        <button class="top-btn" id="pipBtn" title="Picture in Picture">⏺️</button>
+                        <button class="top-btn" id="closeBtn" title="ပိတ်ရန်">✕</button>
+                    </div>
+                </div>
+
+                <!-- Center Play Button (ကြီးကြီး) -->
+                <button class="center-play" id="centerPlayBtn">▶</button>
+
+                <!-- Bottom Controls -->
+                <div class="bottom-controls">
+                    <!-- Progress Bar -->
+                    <div class="progress-section">
+                        <div class="progress-container" id="progressContainer">
+                            <div class="progress-buffered" id="progressBuffered"></div>
+                            <div class="progress-played" id="progressPlayed"></div>
+                            <div class="progress-handle" id="progressHandle"></div>
+                        </div>
+                        <div class="time-info">
+                            <span class="current-time" id="currentTime">0:00</span>
+                            <span id="duration">0:00</span>
+                        </div>
+                    </div>
+
+                    <!-- Controls Row -->
+                    <div class="controls-row">
+                        <button class="control-btn" id="playPauseBtn">▶</button>
+                        
+                        <div class="volume-control">
+                            <button class="control-btn small" id="muteBtn">🔊</button>
+                            <div class="volume-slider-container">
+                                <div class="volume-slider" id="volumeSlider">
+                                    <div class="volume-level" id="volumeLevel"></div>
+                                    <input type="range" id="volumeInput" min="0" max="1" step="0.05" value="1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <span class="time-display">
+                            <span id="currentTimeCompact">0:00</span>
+                            <span class="time-separator">/</span>
+                            <span id="durationCompact">0:00</span>
+                        </span>
+
+                        <div class="quality-selector">
+                            <span>⚙️</span>
+                            <span>1x</span>
+                            <div class="quality-dropdown">
+                                <div class="quality-option" data-speed="0.5">0.5x</div>
+                                <div class="quality-option active" data-speed="1">1x</div>
+                                <div class="quality-option" data-speed="1.5">1.5x</div>
+                                <div class="quality-option" data-speed="2">2x</div>
+                            </div>
+                        </div>
+
+                        <button class="control-btn small" id="fullscreenBtn">⛶</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Duration Badge (ဗီဒီယိုမဖွင့်ခင် ပြရန်) -->
+            <div class="duration-badge" id="durationBadge">0:00</div>
+
+            <!-- PIP Badge -->
+            <div class="pip-badge" id="pipBadge">
+                <span>⏺️</span> Picture in Picture
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TelegramVideoPlayer {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.container = document.getElementById('videoContainer');
+                
+                // Controls
+                this.playPauseBtn = document.getElementById('playPauseBtn');
+                this.centerPlayBtn = document.getElementById('centerPlayBtn');
+                this.muteBtn = document.getElementById('muteBtn');
+                this.fullscreenBtn = document.getElementById('fullscreenBtn');
+                this.pipBtn = document.getElementById('pipBtn');
+                this.closeBtn = document.getElementById('closeBtn');
+                
+                // Progress
+                this.progressContainer = document.getElementById('progressContainer');
+                this.progressPlayed = document.getElementById('progressPlayed');
+                this.progressBuffered = document.getElementById('progressBuffered');
+                this.progressHandle = document.getElementById('progressHandle');
+                
+                // Time displays
+                this.currentTimeSpan = document.getElementById('currentTime');
+                this.durationSpan = document.getElementById('duration');
+                this.currentTimeCompact = document.getElementById('currentTimeCompact');
+                this.durationCompact = document.getElementById('durationCompact');
+                this.durationBadge = document.getElementById('durationBadge');
+                
+                // Volume
+                this.volumeInput = document.getElementById('volumeInput');
+                this.volumeLevel = document.getElementById('volumeLevel');
+                
+                // Speed
+                this.speedOptions = document.querySelectorAll('.quality-option');
+                
+                // Loading
+                this.loadingSpinner = document.getElementById('loadingSpinner');
+                
+                // PIP Badge
+                this.pipBadge = document.getElementById('pipBadge');
+                
+                // State
+                this.isMuted = false;
+                this.lastVolume = 1;
+                
+                this.init();
+            }
+
+            init() {
+                // Event Listeners
+                this.video.addEventListener('click', () => this.togglePlay());
+                this.playPauseBtn.addEventListener('click', () => this.togglePlay());
+                this.centerPlayBtn.addEventListener('click', () => this.togglePlay());
+                
+                this.video.addEventListener('timeupdate', () => this.updateProgress());
+                this.video.addEventListener('loadedmetadata', () => this.updateMetadata());
+                this.video.addEventListener('progress', () => this.updateBuffered());
+                
+                this.progressContainer.addEventListener('click', (e) => this.seek(e));
+                
+                this.muteBtn.addEventListener('click', () => this.toggleMute());
+                this.volumeInput.addEventListener('input', () => this.updateVolume());
+                
+                this.fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+                this.pipBtn.addEventListener('click', () => this.togglePip());
+                
+                this.speedOptions.forEach(opt => {
+                    opt.addEventListener('click', () => this.changeSpeed(opt));
+                });
+                
+                // Loading state
+                this.video.addEventListener('waiting', () => {
+                    this.loadingSpinner.style.display = 'block';
+                });
+                
+                this.video.addEventListener('canplay', () => {
+                    this.loadingSpinner.style.display = 'none';
+                });
+                
+                // Video ended
+                this.video.addEventListener('ended', () => {
+                    this.playPauseBtn.textContent = '▶';
+                    this.centerPlayBtn.textContent = '▶';
+                    this.container.classList.remove('paused');
+                });
+                
+                // Keyboard controls
+                document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+                
+                // Hide duration badge when video plays
+                this.video.addEventListener('play', () => {
+                    this.durationBadge.style.opacity = '0';
+                });
+                
+                this.video.addEventListener('pause', () => {
+                    if (this.video.currentTime === 0) {
+                        this.durationBadge.style.opacity = '1';
+                    }
+                });
+                
+                // Initialize volume
+                this.updateVolume();
+            }
+
+            togglePlay() {
+                if (this.video.paused) {
+                    this.video.play();
+                    this.playPauseBtn.textContent = '⏸';
+                    this.centerPlayBtn.textContent = '⏸';
+                    this.container.classList.remove('paused');
+                } else {
+                    this.video.pause();
+                    this.playPauseBtn.textContent = '▶';
+                    this.centerPlayBtn.textContent = '▶';
+                    this.container.classList.add('paused');
+                }
+            }
+
+            updateProgress() {
+                if (this.video.duration) {
+                    const percent = (this.video.currentTime / this.video.duration) * 100;
+                    this.progressPlayed.style.width = percent + '%';
+                    this.progressHandle.style.left = percent + '%';
+                    
+                    // Update time displays
+                    const current = this.formatTime(this.video.currentTime);
+                    const duration = this.formatTime(this.video.duration);
+                    
+                    this.currentTimeSpan.textContent = current;
+                    this.currentTimeCompact.textContent = current;
+                }
+            }
+
+            updateMetadata() {
+                const duration = this.formatTime(this.video.duration);
+                this.durationSpan.textContent = duration;
+                this.durationCompact.textContent = duration;
+                this.durationBadge.textContent = duration;
+            }
+
+            updateBuffered() {
+                if (this.video.buffered.length > 0) {
+                    const bufferedEnd = this.video.buffered.end(this.video.buffered.length - 1);
+                    const duration = this.video.duration;
+                    if (duration > 0) {
+                        const percent = (bufferedEnd / duration) * 100;
+                        this.progressBuffered.style.width = percent + '%';
+                    }
+                }
+            }
+
+            seek(e) {
+                const rect = this.progressContainer.getBoundingClientRect();
+                const pos = (e.clientX - rect.left) / rect.width;
+                this.video.currentTime = pos * this.video.duration;
+            }
+
+            toggleMute() {
+                if (this.video.volume > 0) {
+                    this.lastVolume = this.video.volume;
+                    this.video.volume = 0;
+                    this.volumeInput.value = 0;
+                    this.muteBtn.textContent = '🔇';
+                } else {
+                    this.video.volume = this.lastVolume;
+                    this.volumeInput.value = this.lastVolume;
+                    this.muteBtn.textContent = this.lastVolume > 0.5 ? '🔊' : '🔉';
+                }
+                this.updateVolume();
+            }
+
+            updateVolume() {
+                const volume = parseFloat(this.volumeInput.value);
+                this.video.volume = volume;
+                this.volumeLevel.style.width = (volume * 100) + '%';
+                
+                if (volume === 0) {
+                    this.muteBtn.textContent = '🔇';
+                } else if (volume < 0.5) {
+                    this.muteBtn.textContent = '🔉';
+                } else {
+                    this.muteBtn.textContent = '🔊';
+                }
+            }
+
+            toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    this.container.requestFullscreen();
+                    this.fullscreenBtn.textContent = '✕';
+                } else {
+                    document.exitFullscreen();
+                    this.fullscreenBtn.textContent = '⛶';
+                }
+            }
+
+            togglePip() {
+                if ('pictureInPictureEnabled' in document) {
+                    if (!document.pictureInPictureElement) {
+                        this.video.requestPictureInPicture();
+                        this.pipBadge.style.opacity = '1';
+                        setTimeout(() => {
+                            this.pipBadge.style.opacity = '0';
+                        }, 2000);
+                    } else {
+                        document.exitPictureInPicture();
+                    }
+                }
+            }
+
+            changeSpeed(option) {
+                const speed = parseFloat(option.dataset.speed);
+                this.video.playbackRate = speed;
+                
+                this.speedOptions.forEach(opt => {
+                    opt.classList.remove('active');
+                });
+                option.classList.add('active');
+                
+                // Update speed text in selector
+                document.querySelector('.quality-selector span:last-child').textContent = speed + 'x';
+            }
+
+            formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            handleKeyboard(e) {
+                switch(e.key.toLowerCase()) {
+                    case ' ':
+                        e.preventDefault();
+                        this.togglePlay();
+                        break;
+                    case 'arrowleft':
+                        this.video.currentTime -= 10;
+                        break;
+                    case 'arrowright':
+                        this.video.currentTime += 10;
+                        break;
+                    case 'arrowup':
+                        e.preventDefault();
+                        this.video.volume = Math.min(this.video.volume + 0.1, 1);
+                        this.volumeInput.value = this.video.volume;
+                        this.updateVolume();
+                        break;
+                    case 'arrowdown':
+                        e.preventDefault();
+                        this.video.volume = Math.max(this.video.volume - 0.1, 0);
+                        this.volumeInput.value = this.video.volume;
+                        this.updateVolume();
+                        break;
+                    case 'f':
+                        this.toggleFullscreen();
+                        break;
+                    case 'm':
+                        this.toggleMute();
+                        break;
+                    case 'i':
+                        this.togglePip();
+                        break;
+                }
+            }
+        }
+
+        // Initialize player
+        const player = new TelegramVideoPlayer();
+
+        // Close button functionality (optional - can be customized)
+        document.getElementById('closeBtn').addEventListener('click', () => {
+            if (confirm('Video player ကိုပိတ်မှာလား?')) {
+                window.close();
+            }
+        });
+    </script>
+</body>
+</html>

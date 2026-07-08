@@ -1,0 +1,15 @@
+@layer components {
+    .home-test-box {
+        @apply bg-gradient-to-br from-[#667eea] to-[#764ba2]
+               text-white 
+               p-[30px] 
+               rounded-[15px] 
+               mx-auto my-[20px] 
+               max-w-[600px] 
+               text-center 
+               border-[5px] border-[#fbbf24]
+               shadow-[0_10px_25px_rgba(0,0,0,0.2)]
+               font-sans 
+               text-base;
+    }
+}

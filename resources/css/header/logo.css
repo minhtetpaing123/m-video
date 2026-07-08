@@ -1,0 +1,383 @@
+/* resources/css/header/logo.css */
+/* Logo Section Styles with Latest Animations */
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    animation: slideInLeft 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.1s both;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.logo-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.logo-link:hover {
+    transform: translateY(-2px) scale(1.02);
+    animation: logoFloat 3s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+    0%, 100% {
+        transform: translateY(-2px) scale(1.02);
+    }
+    50% {
+        transform: translateY(-5px) scale(1.02);
+    }
+}
+
+.logo-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at var(--x) var(--y), rgba(239, 68, 68, 0.1) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.logo-link:hover::before {
+    opacity: 1;
+}
+
+.logo-link::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 70%
+    );
+    transform: rotate(45deg) translateX(-100%);
+    transition: transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.logo-link:hover::after {
+    transform: rotate(45deg) translateX(100%);
+}
+
+.logo-icon-container {
+    width: 2.5rem;
+    height: 2.5rem;
+    background: linear-gradient(135deg, #ef4444 0%, #db2777 50%, #7c3aed 100%);
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+        0 10px 25px -5px rgba(239, 68, 68, 0.4),
+        0 0 20px rgba(219, 39, 119, 0.3),
+        inset 0 2px 4px rgba(255, 255, 255, 0.2);
+    animation: 
+        pulseIcon 2s ease-in-out infinite,
+        gradientShift 3s ease-in-out infinite alternate,
+        glowPulse 4s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.logo-icon-container::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, 
+        #ef4444, #db2777, #7c3aed, #ef4444);
+    border-radius: 0.875rem;
+    z-index: -1;
+    animation: borderRotate 3s linear infinite;
+    opacity: 0.7;
+}
+
+@keyframes borderRotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+        box-shadow: 
+            0 10px 25px -5px rgba(239, 68, 68, 0.4),
+            0 0 20px rgba(219, 39, 119, 0.3),
+            inset 0 2px 4px rgba(255, 255, 255, 0.2);
+    }
+    50% {
+        background-position: 100% 50%;
+        box-shadow: 
+            0 10px 25px -5px rgba(219, 39, 119, 0.4),
+            0 0 20px rgba(124, 58, 237, 0.3),
+            inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    }
+    100% {
+        background-position: 0% 50%;
+        box-shadow: 
+            0 10px 25px -5px rgba(239, 68, 68, 0.4),
+            0 0 20px rgba(219, 39, 119, 0.3),
+            inset 0 2px 4px rgba(255, 255, 255, 0.2);
+    }
+}
+
+@keyframes glowPulse {
+    0%, 100% {
+        filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.5));
+    }
+    50% {
+        filter: drop-shadow(0 0 8px rgba(219, 39, 119, 0.7));
+    }
+}
+
+.logo-svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    animation: iconFloat 2s ease-in-out infinite;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes iconFloat {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    33% {
+        transform: translateY(-2px) rotate(5deg);
+    }
+    66% {
+        transform: translateY(2px) rotate(-5deg);
+    }
+}
+
+.logo-link:hover .logo-svg {
+    transform: scale(1.15) rotate(360deg);
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+    animation: iconSpin 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes iconSpin {
+    from {
+        transform: scale(1) rotate(0deg);
+    }
+    to {
+        transform: scale(1.15) rotate(360deg);
+    }
+}
+
+.logo-text-container {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.logo-text-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ef4444, transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.logo-link:hover .logo-text-container::after {
+    transform: translateX(100%);
+}
+
+.logo-main {
+    font-size: 1.5rem;
+    font-weight: 800;
+    background: linear-gradient(
+        90deg,
+        #dc2626 0%,
+        #db2777 50%,
+        #7c3aed 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: 
+        textShimmer 3s ease-in-out infinite,
+        textGlow 2s ease-in-out infinite alternate;
+    letter-spacing: -0.025em;
+    position: relative;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes textShimmer {
+    0% {
+        background-position: -200% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+}
+
+@keyframes textGlow {
+    0% {
+        text-shadow: 0 0 5px rgba(220, 38, 38, 0.3);
+    }
+    100% {
+        text-shadow: 0 0 15px rgba(219, 39, 119, 0.6);
+    }
+}
+
+.logo-link:hover .logo-main {
+    background: linear-gradient(
+        90deg,
+        #7c3aed 0%,
+        #db2777 50%,
+        #dc2626 100%
+    );
+    transform: scale(1.05);
+    animation: 
+        textShimmer 2s linear infinite,
+        textPulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes textPulse {
+    from {
+        transform: scale(1.05);
+        text-shadow: 0 0 10px rgba(219, 39, 119, 0.4);
+    }
+    to {
+        transform: scale(1.08);
+        text-shadow: 0 0 20px rgba(219, 39, 119, 0.8);
+    }
+}
+
+.logo-sub {
+    font-size: 0.625rem;
+    color: #6b7280;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity: 0.8;
+    position: relative;
+    animation: fadeInUp 0.8s ease-out 0.3s both;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 0.8;
+        transform: translateY(0);
+    }
+}
+
+.logo-link:hover .logo-sub {
+    color: #ef4444;
+    transform: translateY(-1px);
+    opacity: 1;
+    letter-spacing: 0.2em;
+    animation: subtitleGlow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes subtitleGlow {
+    0% {
+        text-shadow: 0 0 5px rgba(239, 68, 68, 0.3);
+    }
+    100% {
+        text-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+    }
+}
+
+/* Mouse tracking effect for logo */
+.logo-container:hover {
+    --x: calc(var(--mouse-x, 0) * 1px);
+    --y: calc(var(--mouse-y, 0) * 1px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .logo-main {
+        font-size: 1.25rem;
+    }
+    
+    .logo-icon-container {
+        width: 2.25rem;
+        height: 2.25rem;
+        animation: 
+            pulseIcon 2s ease-in-out infinite,
+            gradientShift 3s ease-in-out infinite alternate;
+    }
+    
+    .logo-svg {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .logo-container,
+    .logo-link,
+    .logo-icon-container,
+    .logo-svg,
+    .logo-main,
+    .logo-sub {
+        animation: none !important;
+        transition: none !important;
+    }
+    
+    .logo-link:hover {
+        transform: none;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .logo-icon-container {
+        box-shadow: 
+            0 10px 25px -5px rgba(239, 68, 68, 0.6),
+            0 0 20px rgba(219, 39, 119, 0.4),
+            inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .logo-sub {
+        color: #9ca3af;
+    }
+    
+    .logo-link:hover .logo-sub {
+        color: #f87171;
+    }
+}

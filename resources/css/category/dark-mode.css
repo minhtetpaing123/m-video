@@ -1,0 +1,64 @@
+/* resources/css/category/dark-mode.css */
+/* Dark Mode Support */
+
+@media (prefers-color-scheme: dark) {
+    .category-navigation {
+        background-color: #1f2937;
+        border-bottom-color: #374151;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .category-item:not(.active) {
+        background-color: #374151;
+        border-color: #4b5563;
+        color: #d1d5db;
+    }
+    
+    .category-item:not(.active):hover {
+        background-color: #4b5563;
+        border-color: var(--category-color, #6b7280);
+        color: white;
+    }
+    
+    .category-item.active {
+        background: linear-gradient(135deg, var(--category-color, #dc2626) 0%, var(--category-dark, #db2777) 100%);
+        box-shadow: 
+            0 4px 16px color-mix(in srgb, var(--category-color, #dc2626) 40%, transparent),
+            0 2px 8px color-mix(in srgb, var(--category-dark, #db2777) 30%, transparent),
+            inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .category-scroll-button {
+        background: #374151;
+        border-color: #4b5563;
+    }
+    
+    .category-scroll-button:hover {
+        background: #4b5563;
+    }
+    
+    .category-scroll-button-icon {
+        color: #d1d5db;
+    }
+    
+    /* Pron specific dark mode */
+    .category-item[data-category="pron"]:not(.active) {
+        background-color: #4a1f1f;
+        border-color: #662929;
+        color: #ff9999;
+    }
+    
+    .category-item[data-category="pron"]:not(.active):hover {
+        background-color: #5c2626;
+        border-color: var(--category-color, #ff6b6b);
+        color: white;
+    }
+    
+    .category-item[data-category="pron"].active {
+        background: linear-gradient(135deg, var(--category-color, #ff6b6b) 0%, var(--category-dark, #ff4757) 100%);
+        box-shadow: 
+            0 4px 25px rgba(255, 107, 107, 0.5),
+            0 2px 16px rgba(255, 71, 87, 0.4),
+            inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+}

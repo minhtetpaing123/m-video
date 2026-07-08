@@ -1,0 +1,67 @@
+/* resources/css/app.css */
+
+/* Font Awesome CDN */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+/* Google Icons */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
+
+/* Tailwind CSS */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom Header Styles */
+@import './header/main.css';
+/* resources/css/category/main.css */
+/* Category Navigation Main Import */
+@import url('category/main.css');
+@import url('home/main.css');
+@import url('user/user.css');
+/* resources/css/app.css */
+/* Other imports... */
+/* resources/css/app.css */
+
+/* Your other custom CSS below */
+
+/* Import Comment System Styles *
+
+/* Your other styles... */
+
+/* Add other category-related styles here if needed */
+
+/* Your custom styles */
+
+/* Font Awesome Overrides if needed */
+.fas, .far, .fab {
+    font-family: 'Font Awesome 6 Free' !important;
+}
+
+/* Ensure proper icon alignment */
+.material-icons-outlined,
+.fas,
+.far,
+.fab {
+    vertical-align: middle;
+}
+
+/* Custom icon sizes for consistency */
+.icon-sm {
+    font-size: 0.875rem;
+}
+
+.icon-md {
+    font-size: 1rem;
+}
+
+.icon-lg {
+    font-size: 1.25rem;
+}
+
+.icon-xl {
+    font-size: 1.5rem;
+}
+
+.icon-2xl {
+    font-size: 2rem;
+}

@@ -1,0 +1,36 @@
+/* Header CSS Variables */
+:root {
+    /* Colors */
+    --header-bg: #ffffff;
+    --header-border: #e0e0e0;
+    --text-primary: #0f0f0f;
+    --text-secondary: #606060;
+    --primary-red: #ff0000;
+    --secondary-red: #ff6b6b;
+    --icon-color: #606060;
+    --button-hover-bg: #f5f5f5;
+    --search-border: #ccc;
+    --border-color: #e0e0e0;
+    --search-button-bg: #f8f8f8;
+    --search-button-hover: #f0f0f0;
+    
+    /* Sizes */
+    --header-height: 60px;
+    --header-padding: 20px;
+    --logo-font-size: 22px;
+    --icon-size: 24px;
+    --avatar-size: 36px;
+}
+
+.dark-mode {
+    --header-bg: #0f0f0f;
+    --header-border: #303030;
+    --text-primary: #f1f1f1;
+    --text-secondary: #aaa;
+    --icon-color: #f1f1f1;
+    --button-hover-bg: #3a3a3a;
+    --search-border: #303030;
+    --border-color: #303030;
+    --search-button-bg: #222222;
+    --search-button-hover: #3a3a3a;
+}

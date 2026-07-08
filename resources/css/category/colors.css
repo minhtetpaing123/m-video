@@ -1,0 +1,152 @@
+/* resources/css/category/colors.css */
+/* Individual Category Color Schemes */
+
+/* All */
+.category-item[data-category="all"] {
+    --category-color: #ef4444;
+    --category-light: #fee2e2;
+    --category-dark: #dc2626;
+    background-color: var(--category-light);
+    color: var(--category-color);
+    border-color: var(--category-light);
+}
+
+/* Add this new rule for active state */
+.category-item[data-category="all"].active {
+    color: white;
+    background: linear-gradient(135deg, var(--category-color) 0%, var(--category-dark) 100%);
+    border-color: transparent;
+}
+
+/* Gaming */
+.category-item[data-category="gaming"] {
+    --category-color: #3b82f6;
+    --category-light: #dbeafe;
+    --category-dark: #2563eb;
+    background-color: var(--category-light);
+    color: var(--category-color);
+    border-color: var(--category-light);
+}
+
+/* Podcasts */
+.category-item[data-category="podcasts"] {
+    --category-color: #8b5cf6;
+    --category-light: #ede9fe;
+    --category-dark: #7c3aed;
+    background-color: var(--category-light);
+    color: var(--category-color);
+    border-color: var(--category-light);
+}
+
+/* Mobile Legends */
+.category-item[data-category="mobile-legends"] {
+    --category-color: #10b981;
+    --category-light: #d1fae5;
+    --category-dark: #059669;
+    background-color: var(--category-light);
+    color: var(--category-color);
+    border-color: var(--category-light);
+}
+
+/* Shorts */
+.category-item[data-category="shorts"] {
+    --category-color: #f59e0b;
+    --category-light: #fef3c7;
+    --category-dark: #d97706;
+    background-color: var(--category-light);
+    color: var(--category-color);
+    border-color: var(--category-light);
+}
+
+/* Music */
+.category-item[data-category="music"] {
+    --category-color: #ec4899;
+    --category-light: #fce7f3;
+    --category-dark: #db2777;
+    background-color: var(--category-light);
+    color: var(--category-color);
+    border-color: var(--category-light);
+}
+
+/* Live */
+.category-item[data-category="live"] {
+    --category-color: #ef4444;
+    --category-light: #fee2e2;
+    --category-dark: #dc2626;
+    background-color: var(--category-light);
+    color: var(--category-color);
+    border-color: var(--category-light);
+}
+
+/* Trending */
+.category-item[data-category="trending"] {
+    --category-color: #6366f1;
+    --category-light: #e0e7ff;
+    --category-dark: #4f46e5;
+    background-color: var(--category-light);
+    color: var(--category-color);
+    border-color: var(--category-light);
+}
+
+/* Pron - Special Styling */
+.category-item[data-category="pron"] {
+    --category-color: #ff6b6b;
+    --category-light: #ffebee;
+    --category-dark: #ff4757;
+    background-color: var(--category-light);
+    color: var(--category-color);
+    border-color: var(--category-light);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Pron Special Effects */
+.category-item[data-category="pron"] .category-icon {
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+.category-item[data-category="pron"]:hover {
+    box-shadow: 
+        0 4px 16px rgba(255, 107, 107, 0.25),
+        0 2px 8px rgba(255, 71, 87, 0.2);
+}
+
+.category-item[data-category="pron"].active {
+    animation: pronPulse 1.5s ease-in-out infinite;
+    box-shadow: 
+        0 4px 20px rgba(255, 107, 107, 0.4),
+        0 2px 12px rgba(255, 71, 87, 0.3),
+        inset 0 2px 4px rgba(255, 255, 255, 0.3);
+}
+
+/* Special text glow for Pron */
+.category-item[data-category="pron"] .category-name {
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+.category-item[data-category="pron"]:hover .category-name {
+    text-shadow: 0 0 8px color-mix(in srgb, var(--category-color) 40%, transparent);
+}
+
+/* Shine effect for Pron */
+.category-item[data-category="pron"]::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.2) 50%,
+        transparent 70%
+    );
+    transform: rotate(45deg) translateX(-100%);
+    transition: transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.category-item[data-category="pron"]:hover::after {
+    transform: rotate(45deg) translateX(100%);
+}

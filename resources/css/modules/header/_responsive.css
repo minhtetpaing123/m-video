@@ -1,0 +1,47 @@
+/* Tablet and Below */
+@media (max-width: 768px) {
+    :root {
+        --header-height: 56px;
+        --header-padding: 12px;
+        --logo-font-size: 18px;
+        --avatar-size: 32px;
+    }
+    
+    .header-right {
+        gap: 12px;
+    }
+    
+    .search-bar.active {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100vw;
+        height: var(--header-height);
+        border-radius: 0;
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+        transform: none;
+        animation: none;
+    }
+    
+    .search-bar.active .search-back-btn {
+        display: flex;
+    }
+    
+    .account-dropdown {
+        right: 12px;
+        min-width: 260px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .material-icons-outlined {
+        padding: 6px;
+    }
+    
+    .header-avatar {
+        font-size: 14px;
+    }
+}

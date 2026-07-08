@@ -1,0 +1,132 @@
+/* resources/css/header/buttons.css */
+/* All Button Styles */
+
+/* Mobile Search Toggle Button */
+.mobile-search-toggle {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-search-toggle:hover {
+    background-color: #ef4444;
+    color: white;
+    transform: scale(1.05) rotate(5deg);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.mobile-search-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    transition: transform 0.3s ease;
+}
+
+.mobile-search-toggle:hover .mobile-search-icon {
+    transform: scale(1.1);
+}
+
+/* Close Search Button */
+.close-search-btn {
+    padding: 0.5rem;
+    border-radius: 9999px;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.close-search-btn:hover {
+    background-color: #ef4444;
+    color: white;
+    transform: scale(1.1) rotate(90deg);
+}
+
+.close-search-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+.close-search-btn:hover .close-search-icon {
+    transform: scale(1.1);
+}
+
+/* Auth Buttons */
+.sign-in-button {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background-color: #ef4444;
+    color: white;
+    text-align: center;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.sign-in-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.sign-in-button:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.sign-in-button:hover {
+    background-color: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+}
+
+.create-account-button {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background-color: transparent;
+    color: #374151;
+    text-align: center;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.create-account-button:hover {
+    border-color: #ef4444;
+    color: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.1);
+}
+
+/* Smooth focus transitions */
+*:focus {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

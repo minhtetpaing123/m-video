@@ -1,0 +1,13 @@
+/* resources/css/header/main.css */
+/* M-VIDEO Header Main CSS Import */
+
+@import url('./base.css');
+@import url('./animations.css');
+@import url('./logo.css');
+@import url('./desktop-search.css');
+@import url('./mobile-search.css');
+@import url('./user-menu.css');
+@import url('./buttons.css');
+@import url('./responsive.css');
+
+/* Note: Import this file in app.css or main layout */

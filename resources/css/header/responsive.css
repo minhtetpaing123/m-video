@@ -1,0 +1,25 @@
+/* resources/css/header/responsive.css */
+/* Media Queries & Responsive Styles */
+
+/* Desktop-only elements */
+@media (min-width: 768px) {
+    .desktop-search {
+        display: flex;
+    }
+    
+    .mobile-search-toggle {
+        display: none;
+    }
+    
+    .mobile-search-overlay {
+        display: none;
+    }
+}
+
+/* Mobile-only adjustments */
+@media (max-width: 767px) {
+    .desktop-search {
+        display: none !important;
+        visibility: hidden !important;
+    }
+}
