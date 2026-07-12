@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Post;
 
 use App\Http\Controllers\Controller;
 use App\Models\Post;
+use App\Jobs\ProcessVideoJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class MediaUploadController extends Controller
 {
@@ -24,6 +26,7 @@ class MediaUploadController extends Controller
                 'privacy' => $request->privacy,
                 'has_image' => $request->hasFile('image'),
                 'has_video' => $request->hasFile('video'),
+                'has_thumbnail' => $request->hasFile('video_thumbnail'),
                 'has_link' => $request->filled('link'),
                 'all_data' => $request->all()
             ]);
@@ -33,11 +36,13 @@ class MediaUploadController extends Controller
                 'content' => 'nullable|string|max:5000',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
                 'video' => 'nullable|mimes:mp4,mov,avi,wmv,flv,3gp,mkv|max:102400',
+                'video_thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
                 'link' => 'nullable|url|max:500',
                 'privacy' => 'required|in:public,friends,onlyme'
             ]);
 
             if ($validator->fails()) {
+                Log::error('Validation failed:', $validator->errors()->toArray());
                 return redirect()->back()
                     ->withErrors($validator->errors())
                     ->withInput();
@@ -55,19 +60,33 @@ class MediaUploadController extends Controller
             // Handle Image Upload
             if ($request->hasFile('image') && $request->file('image')->isValid()) {
                 $file = $request->file('image');
-                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
                 $path = $file->storeAs('posts/images', $filename, 'public');
                 $post->image = $path;
                 Log::info('Image uploaded:', ['path' => $path]);
             }
 
-            // Handle Video Upload
+            // ============================================
+            // HANDLE VIDEO UPLOAD
+            // ============================================
             if ($request->hasFile('video') && $request->file('video')->isValid()) {
                 $file = $request->file('video');
-                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
                 $path = $file->storeAs('posts/videos', $filename, 'public');
                 $post->video = $path;
                 Log::info('Video uploaded:', ['path' => $path]);
+
+                // ============================================
+                // MANUAL THUMBNAIL UPLOAD (Optional)
+                // ============================================
+                if ($request->hasFile('video_thumbnail') && $request->file('video_thumbnail')->isValid()) {
+                    $thumbFile = $request->file('video_thumbnail');
+                    $thumbFilename = time() . '_thumb_' . Str::random(10) . '.' . $thumbFile->getClientOriginalExtension();
+                    $thumbPath = $thumbFile->storeAs('posts/thumbnails', $thumbFilename, 'public');
+                    $post->video_thumbnail = $thumbPath;
+                    Log::info('Manual thumbnail uploaded:', ['path' => $thumbPath]);
+                }
+                // If no manual thumbnail, auto-generate will happen in background job
             }
 
             // Handle External Link
@@ -82,12 +101,26 @@ class MediaUploadController extends Controller
 
             $post->save();
 
-            Log::info('Post saved successfully:', ['post_id' => $post->id]);
+            Log::info('Post saved successfully:', [
+                'post_id' => $post->id,
+                'video' => $post->video,
+                'thumbnail' => $post->video_thumbnail ?? 'auto (will generate)',
+                'image' => $post->image
+            ]);
+
+            // ============================================
+            // DISPATCH BACKGROUND JOB FOR VIDEO PROCESSING
+            // ============================================
+            if ($post->video) {
+                ProcessVideoJob::dispatch($post);
+                Log::info('Video processing job dispatched for post: ' . $post->id);
+            }
 
             return redirect()->back()->with('success', 'Post created successfully!');
 
         } catch (\Exception $e) {
             Log::error('Error creating post: ' . $e->getMessage());
+            Log::error('Trace: ' . $e->getTraceAsString());
             return redirect()->back()
                 ->with('error', 'Failed to create post: ' . $e->getMessage())
                 ->withInput();
@@ -113,7 +146,7 @@ class MediaUploadController extends Controller
 
             if ($request->hasFile('image') && $request->file('image')->isValid()) {
                 $file = $request->file('image');
-                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
                 $path = $file->storeAs('temp/images', $filename, 'public');
                 $url = Storage::url($path);
 
@@ -159,7 +192,7 @@ class MediaUploadController extends Controller
 
             if ($request->hasFile('video') && $request->file('video')->isValid()) {
                 $file = $request->file('video');
-                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
                 $path = $file->storeAs('temp/videos', $filename, 'public');
                 $url = Storage::url($path);
 

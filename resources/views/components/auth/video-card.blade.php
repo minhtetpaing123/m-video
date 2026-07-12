@@ -1,4 +1,4 @@
-{{-- resources/views/includes/video-card.blade.php --}}
+{{-- resources/views/components/auth/video-card.blade.php --}}
 @props(['post', 'index' => 0])
 
 @php
@@ -106,7 +106,7 @@
                 <span class="upload-time">{{ $video['time'] }}</span>
             </div>
             
-            {{-- Menu Button --}}
+            {{-- Auth User Menu Button (Interactive) --}}
             <div class="menu-button-wrapper">
                 <button class="menu-button" aria-label="Video menu" data-video-id="{{ $post->id }}">
                     <svg class="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -128,7 +128,7 @@
             </a>
         </h3>
         
-        {{-- Video Stats --}}
+        {{-- Video Stats (Interactive for Auth User) --}}
         <div class="video-stats">
             @if($video['live'])
                 <span class="stat-item live-badge">
@@ -151,9 +151,8 @@
                     <span class="stat-count">{{ $viewsDisplay }}</span>
                 </span>
                 
-                <span class="stat-item comment-stat-item {{ !auth()->check() ? 'read-only' : '' }}" 
-                      data-stat="comments" 
-                      data-video-id="{{ $post->id }}">
+                {{-- Auth User: Comments (Interactive) --}}
+                <span class="stat-item comment-stat-item" data-stat="comments" data-video-id="{{ $post->id }}">
                     <button class="comment-icon-btn" data-video-id="{{ $post->id }}" aria-label="Show comments">
                         <svg class="stat-icon comment-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
@@ -162,11 +161,14 @@
                     </button>
                 </span>
                 
+                {{-- Auth User: Likes (Interactive) --}}
                 <span class="stat-item" data-stat="likes" data-video-id="{{ $post->id }}">
-                    <svg class="stat-icon like-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/>
-                    </svg>
-                    <span class="stat-count">{{ $likesDisplay }}</span>
+                    <button class="like-btn" data-video-id="{{ $post->id }}" aria-label="Like video">
+                        <svg class="stat-icon like-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/>
+                        </svg>
+                        <span class="stat-count">{{ $likesDisplay }}</span>
+                    </button>
                 </span>
             @endif
         </div>

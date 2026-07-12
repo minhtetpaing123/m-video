@@ -14,6 +14,10 @@ class Post extends Model
         'content',
         'image',
         'video',
+        'video_thumbnail',
+        'video_720',
+        'video_480',
+        'video_360',
         'link',
         'link_title',
         'link_thumbnail',
@@ -21,7 +25,7 @@ class Post extends Model
         'likes_count',
         'comments_count',
         'shares_count',
-        'notification_enabled'  // Added
+        'notification_enabled'
     ];
 
     protected $casts = [
@@ -30,7 +34,7 @@ class Post extends Model
         'likes_count' => 'integer',
         'comments_count' => 'integer',
         'shares_count' => 'integer',
-        'notification_enabled' => 'boolean'  // Added
+        'notification_enabled' => 'boolean'
     ];
 
     protected $appends = [
@@ -101,33 +105,21 @@ class Post extends Model
         return null;
     }
 
-    /**
-     * Get image URL
-     */
     public function getImageUrlAttribute()
     {
-        return $this->image ? asset('storage/' . $this->image) : null;
+        return $this->image ? Storage::url($this->image) : null;
     }
 
-    /**
-     * Get video URL
-     */
     public function getVideoUrlAttribute()
     {
-        return $this->video ? asset('storage/' . $this->video) : null;
+        return $this->video ? Storage::url($this->video) : null;
     }
 
-    /**
-     * Get link URL
-     */
     public function getLinkUrlAttribute()
     {
         return $this->link ?? null;
     }
 
-    /**
-     * Get domain from link
-     */
     public function getLinkDomainAttribute()
     {
         if (!$this->link) return null;
@@ -136,9 +128,6 @@ class Post extends Model
         return str_replace('www.', '', $domain);
     }
 
-    /**
-     * Get reaction summary (count by type)
-     */
     public function getReactionSummaryAttribute()
     {
         return $this->reactions()
@@ -148,19 +137,6 @@ class Post extends Model
             ->toArray();
     }
 
-    /**
-     * Get user's reaction to this post
-     */
-    public function getUserReactionAttribute($userId)
-    {
-        return $this->reactions()
-            ->where('user_id', $userId)
-            ->value('type');
-    }
-
-    /**
-     * Check if user liked this post
-     */
     public function isLikedBy($userId)
     {
         return $this->reactions()
@@ -168,9 +144,6 @@ class Post extends Model
             ->exists();
     }
 
-    /**
-     * Get top 3 reactions for display
-     */
     public function getTopReactionsAttribute()
     {
         return $this->reactions()
@@ -181,22 +154,32 @@ class Post extends Model
             ->get();
     }
 
-    // Boot method (for model events)
     protected static function boot()
     {
         parent::boot();
 
-        // When post is deleted, delete related comments and reactions
         static::deleting(function($post) {
             $post->comments()->delete();
             $post->reactions()->delete();
             
-            // Delete files if they exist
+            // Delete all media files
             if ($post->image) {
                 \Storage::disk('public')->delete($post->image);
             }
             if ($post->video) {
                 \Storage::disk('public')->delete($post->video);
+            }
+            if ($post->video_thumbnail) {
+                \Storage::disk('public')->delete($post->video_thumbnail);
+            }
+            if ($post->video_720) {
+                \Storage::disk('public')->delete($post->video_720);
+            }
+            if ($post->video_480) {
+                \Storage::disk('public')->delete($post->video_480);
+            }
+            if ($post->video_360) {
+                \Storage::disk('public')->delete($post->video_360);
             }
         });
     }

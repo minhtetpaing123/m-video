@@ -9,14 +9,34 @@ use App\Http\Controllers\Post\MediaUploadController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\ReactionController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\VideoController;
+use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Cache;
 
-// Public Routes
-Route::get('/', function () {
-    return view('home');
-});
+// ============================================
+// PUBLIC ROUTES (Login မဝင်ရသေးတဲ့ User တွေအတွက်)
+// ============================================
 
-// Protected Routes
+// Home Page
+Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// Video Streaming - PUBLIC
+Route::get('/video/{path}', [VideoController::class, 'stream'])
+    ->where('path', '.*')
+    ->name('video.stream');
+
+// ============================================
+// POST SHOW - PUBLIC (အကုန်လုံးကြည့်လို့ရ)
+// ============================================
+Route::get('/posts/{post}', [PostController::class, 'show'])->name('posts.show');
+
+// ============================================
+// AUTHENTICATED ROUTES (Login ဝင်ထားမှပဲရ)
+// ============================================
+
 Route::middleware(['auth', 'verified'])->group(function () {
     
     // Dashboard
@@ -25,9 +45,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // User Posts
     Route::get('/user/{user}/posts', [PostController::class, 'userPosts'])->name('user.posts');
     
-    // Post CRUD
+    // Post CRUD (Create, Update, Delete)
     Route::post('/posts', [MediaUploadController::class, 'store'])->name('posts.store');
-    Route::get('/posts/{post}', [PostController::class, 'show'])->name('posts.show');
     Route::put('/posts/{post}', [PostCrudController::class, 'update'])->name('posts.update');
     Route::delete('/posts/{post}', [PostCrudController::class, 'destroy'])->name('posts.destroy');
     
@@ -55,7 +74,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
     Route::get('/posts/{post}/comments', [CommentController::class, 'index'])->name('comments.index');
     
-    // ===== Notification Routes =====
+    // Notification Routes
     Route::get('/noti', [NotificationController::class, 'index'])->name('noti');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
@@ -67,48 +86,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// API Routes
+// ============================================
+// API ROUTES
+// ============================================
+
 Route::middleware(['auth'])->prefix('api')->group(function () {
     Route::post('/posts/{post}/like', [ReactionController::class, 'store']);
     Route::get('/posts/{post}/reactions', [ReactionController::class, 'index']);
     Route::get('/posts/{post}/comments', [CommentController::class, 'index']);
 });
-Route::get('/debug-notifications', function() {
-    $notifications = App\Models\Notification::with('fromUser')->latest()->get();
-    
-    $html = '<h1>Notifications Debug</h1>';
-    $html .= '<table border="1" cellpadding="8">';
-    $html .= '<tr><th>ID</th><th>Type</th><th>Post ID</th><th>From User</th><th>Data</th><th>Post URL</th></tr>';
-    
-    foreach($notifications as $n) {
-        $postUrl = $n->post_id ? url("/posts/{$n->post_id}") : 'No post ID';
-        $html .= "<tr>";
-        $html .= "<td>{$n->id}</td>";
-        $html .= "<td>{$n->type}</td>";
-        $html .= "<td>{$n->post_id}</td>";
-        $html .= "<td>{$n->fromUser->name}</td>";
-        $html .= "<td>" . print_r($n->data, true) . "</td>";
-        $html .= "<td><a href='{$postUrl}' target='_blank'>Go</a></td>";
-        $html .= "</tr>";
-    }
-    
-    $html .= '</table>';
-    
-    return $html;
-});
-Route::get('/check-posts', function() {
-    $postIds = [104, 61, 85, 105, 106];
-    $results = [];
-    
-    foreach($postIds as $id) {
-        $post = App\Models\Post::find($id);
-        $results[] = [
-            'post_id' => $id,
-            'exists' => $post ? 'Yes' : 'No',
-            'url' => $post ? url("/posts/{$id}") : null
-        ];
-    }
-    
-    return $results;
-});
+
+// ============================================
+// AUTH ROUTES
+// ============================================
+
 require __DIR__.'/auth.php';

@@ -1,45 +1,80 @@
-// public/sw.js
-const CACHE_NAME = 'mvideo-cache-v1';
-const VIDEO_CACHE = 'video-cache-v1';
+// public/sw.js (Final Version)
+
+const CACHE_NAME = 'mvideo-v1';
+const VIDEO_CACHE = 'video-v1';
 
 // Install event
 self.addEventListener('install', event => {
-    console.log('Service Worker installing...');
+    console.log('⚡ Service Worker installing...');
     self.skipWaiting();
 });
 
 // Activate event
 self.addEventListener('activate', event => {
-    console.log('Service Worker activating...');
+    console.log('⚡ Service Worker activating...');
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.map(cacheName => {
+                    if (cacheName !== CACHE_NAME && cacheName !== VIDEO_CACHE) {
+                        console.log('🗑️ Deleting old cache:', cacheName);
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        })
+    );
     event.waitUntil(clients.claim());
 });
 
-// Fetch event - cache videos
+// Fetch event
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
     
-    // Cache video files
-    if (url.pathname.includes('/storage/posts/videos/')) {
+    console.log('🔍 Fetch:', url.pathname);
+    
+    // Cache video requests
+    if (url.pathname.includes('/video/') || 
+        url.pathname.includes('.mp4') ||
+        url.pathname.includes('/storage/posts/videos/')) {
+        
         event.respondWith(
             caches.open(VIDEO_CACHE).then(async cache => {
-                const cachedResponse = await cache.match(event.request);
-                if (cachedResponse) {
-                    console.log('Serving from cache:', url.pathname);
-                    return cachedResponse;
+                // Check cache first
+                let response = await cache.match(event.request);
+                
+                if (response) {
+                    console.log('✅ Cached:', url.pathname);
+                    return response;
                 }
                 
-                console.log('Fetching and caching:', url.pathname);
-                const networkResponse = await fetch(event.request);
-                cache.put(event.request, networkResponse.clone());
-                return networkResponse;
+                try {
+                    console.log('⬇️ Fetching:', url.pathname);
+                    response = await fetch(event.request);
+                    
+                    // Cache successful responses
+                    if (response && response.status === 200) {
+                        const clone = response.clone();
+                        cache.put(event.request, clone);
+                        console.log('✅ Cached successfully:', url.pathname);
+                    }
+                    
+                    return response;
+                    
+                } catch (error) {
+                    console.error('❌ Fetch error:', error);
+                    return new Response('Network error', { status: 503 });
+                }
             })
         );
-    } else {
-        // For other requests, try network first, then cache
-        event.respondWith(
-            fetch(event.request).catch(() => {
-                return caches.match(event.request);
-            })
-        );
+        return;
     }
+    
+    // Default: network first
+    event.respondWith(
+        fetch(event.request).catch(async () => {
+            const cached = await caches.match(event.request);
+            return cached || new Response('Offline', { status: 503 });
+        })
+    );
 });

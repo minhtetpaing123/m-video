@@ -49,17 +49,74 @@ class PostController extends Controller
     }
 
     /**
-     * Display the specified post
+     * Display the specified post - PUBLIC (Guest User တွေလည်းကြည့်လို့ရ)
      */
     public function show(Post $post)
     {
         try {
+            // Load relationships
             $post->load(['user', 'comments.user', 'reactions.user']);
-            return view('posts.show', compact('post'));
+            
+            // ============================================
+            // PRIVACY CHECK
+            // ============================================
+            
+            // If post is public - anyone can view
+            if ($post->privacy === 'public') {
+                return view('posts.show', compact('post'));
+            }
+            
+            // If post is friends only - only friends can view
+            if ($post->privacy === 'friends') {
+                // Check if user is logged in
+                if (!auth()->check()) {
+                    return redirect()->route('login')
+                        ->with('error', 'Please login to view this post');
+                }
+                
+                // Check if user is the owner
+                if (auth()->id() === $post->user_id) {
+                    return view('posts.show', compact('post'));
+                }
+                
+                // Check if user is friends with the post owner
+                // (Assuming you have a friends relationship)
+                // $isFriend = auth()->user()->friends()->where('friend_id', $post->user_id)->exists();
+                // if ($isFriend) {
+                //     return view('posts.show', compact('post'));
+                // }
+                
+                // For now, allow if user is logged in (you can add friend check later)
+                if (auth()->check()) {
+                    return view('posts.show', compact('post'));
+                }
+                
+                return redirect()->route('home')
+                    ->with('error', 'You are not authorized to view this post');
+            }
+            
+            // If post is onlyme - only the owner can view
+            if ($post->privacy === 'onlyme') {
+                if (!auth()->check()) {
+                    return redirect()->route('login')
+                        ->with('error', 'Please login to view this post');
+                }
+                
+                if (auth()->id() !== $post->user_id) {
+                    return redirect()->route('home')
+                        ->with('error', 'This post is private');
+                }
+                
+                return view('posts.show', compact('post'));
+            }
+            
+            // Default: redirect to home
+            return redirect()->route('home')
+                ->with('error', 'You are not authorized to view this post');
             
         } catch (\Exception $e) {
             Log::error('Error showing post: ' . $e->getMessage());
-            return redirect()->route('dashboard')->with('error', 'Post not found.');
+            return redirect()->route('home')->with('error', 'Post not found.');
         }
     }
 }
