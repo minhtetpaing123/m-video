@@ -23,6 +23,16 @@ use Illuminate\Support\Facades\Cache;
 // Home Page
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+// Info/Description Page
+Route::get('/posts/{post}/info', [App\Http\Controllers\DescriptionController::class, 'show'])
+    ->name('posts.description');
+    
+// Category Filter Route
+Route::get('/category/{category}', [HomeController::class, 'index'])->name('category.filter');
+
+// 18+ Category Route (သီးသန့်)
+Route::get('/18plus', [HomeController::class, 'index'])->name('category.18plus');
+
 // Video Streaming - PUBLIC
 Route::get('/video/{path}', [VideoController::class, 'stream'])
     ->where('path', '.*')

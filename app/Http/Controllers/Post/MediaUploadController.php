@@ -22,8 +22,12 @@ class MediaUploadController extends Controller
         try {
             Log::info('=== Post Store Request ===');
             Log::info('Request data:', [
+                'title' => $request->title,
                 'content' => $request->content,
+                'description' => $request->description,
                 'privacy' => $request->privacy,
+                'category' => $request->category,
+                'is_mature' => $request->has('is_mature'),
                 'has_image' => $request->hasFile('image'),
                 'has_video' => $request->hasFile('video'),
                 'has_thumbnail' => $request->hasFile('video_thumbnail'),
@@ -31,14 +35,20 @@ class MediaUploadController extends Controller
                 'all_data' => $request->all()
             ]);
 
-            // Validate request
+            // ============================================
+            // VALIDATION
+            // ============================================
             $validator = Validator::make($request->all(), [
-                'content' => 'nullable|string|max:5000',
+                'title' => 'nullable|string|max:100',
+                'content' => 'nullable|string|max:100',
+                'description' => 'nullable|string',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
                 'video' => 'nullable|mimes:mp4,mov,avi,wmv,flv,3gp,mkv|max:102400',
                 'video_thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
                 'link' => 'nullable|url|max:500',
-                'privacy' => 'required|in:public,friends,onlyme'
+                'privacy' => 'required|in:public,friends,onlyme',
+                'category' => 'required|string|max:50',
+                'is_mature' => 'nullable|boolean',
             ]);
 
             if ($validator->fails()) {
@@ -51,8 +61,12 @@ class MediaUploadController extends Controller
             // Create new post
             $post = new Post();
             $post->user_id = Auth::id();
+            $post->title = $request->title;
             $post->content = $request->content ?? '';
+            $post->description = $request->description;
             $post->privacy = $request->privacy;
+            $post->category = $request->category;
+            $post->is_mature = $request->has('is_mature') ? true : false;
             $post->likes_count = 0;
             $post->comments_count = 0;
             $post->shares_count = 0;
@@ -89,12 +103,25 @@ class MediaUploadController extends Controller
                 // If no manual thumbnail, auto-generate will happen in background job
             }
 
-            // Handle External Link
+            // ============================================
+            // HANDLE EXTERNAL LINK (ပြင်ဆင်ထားတယ် - Vimeo အတွက်)
+            // ============================================
             if ($request->filled('link')) {
-                $post->link = $request->link;
-                $post->link_title = $this->getLinkTitle($request->link);
+                $link = $request->link;
+                
+                // =============================================
+                // VIMEO LINK ကို သန့်ရှင်းအောင်လုပ်မယ်
+                // =============================================
+                if (str_contains($link, 'vimeo.com')) {
+                    // ? နဲ့စတဲ့ Parameters တွေကိုဖြုတ်မယ်
+                    $link = strtok($link, '?');
+                    Log::info('Vimeo link cleaned:', ['original' => $request->link, 'cleaned' => $link]);
+                }
+                
+                $post->link = $link;
+                $post->link_title = $this->getLinkTitle($link);
                 Log::info('Link added:', [
-                    'link' => $request->link,
+                    'link' => $link,
                     'title' => $post->link_title
                 ]);
             }
@@ -103,6 +130,10 @@ class MediaUploadController extends Controller
 
             Log::info('Post saved successfully:', [
                 'post_id' => $post->id,
+                'title' => $post->title,
+                'description' => $post->description,
+                'category' => $post->category,
+                'is_mature' => $post->is_mature,
                 'video' => $post->video,
                 'thumbnail' => $post->video_thumbnail ?? 'auto (will generate)',
                 'image' => $post->image
@@ -125,6 +156,36 @@ class MediaUploadController extends Controller
                 ->with('error', 'Failed to create post: ' . $e->getMessage())
                 ->withInput();
         }
+    }
+
+    /**
+     * Get link title from URL
+     */
+    private function getLinkTitle($url)
+    {
+        $domain = parse_url($url, PHP_URL_HOST);
+        $domain = str_replace('www.', '', $domain);
+        
+        $titles = [
+            'youtube.com' => 'YouTube Video',
+            'youtu.be' => 'YouTube Video',
+            'tiktok.com' => 'TikTok Video',
+            'instagram.com' => 'Instagram Post',
+            'facebook.com' => 'Facebook Video',
+            'fb.com' => 'Facebook Video',
+            'twitter.com' => 'Twitter Video',
+            'x.com' => 'Twitter Video',
+            'vimeo.com' => 'Vimeo Video',
+            'dailymotion.com' => 'Dailymotion Video',
+        ];
+        
+        foreach ($titles as $key => $title) {
+            if (str_contains($domain, $key)) {
+                return $title;
+            }
+        }
+        
+        return 'External Link';
     }
 
     /**
@@ -277,36 +338,6 @@ class MediaUploadController extends Controller
                 'message' => 'Failed to process URL'
             ], 500);
         }
-    }
-
-    /**
-     * Get link title from URL
-     */
-    private function getLinkTitle($url)
-    {
-        $domain = parse_url($url, PHP_URL_HOST);
-        $domain = str_replace('www.', '', $domain);
-        
-        $titles = [
-            'youtube.com' => 'YouTube Video',
-            'youtu.be' => 'YouTube Video',
-            'tiktok.com' => 'TikTok Video',
-            'instagram.com' => 'Instagram Post',
-            'facebook.com' => 'Facebook Video',
-            'fb.com' => 'Facebook Video',
-            'twitter.com' => 'Twitter Video',
-            'x.com' => 'Twitter Video',
-            'vimeo.com' => 'Vimeo Video',
-            'dailymotion.com' => 'Dailymotion Video',
-        ];
-        
-        foreach ($titles as $key => $title) {
-            if (str_contains($domain, $key)) {
-                return $title;
-            }
-        }
-        
-        return 'External Link';
     }
 
     /**
