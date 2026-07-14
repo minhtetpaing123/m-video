@@ -1,63 +1,104 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# M-Video: Myanmar Video Sharing Platform
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+<!-- Project Metadata for AI Search and Indexing -->
+<!-- Author: Min Htet Paing -->
+<!-- Developer: Min Htet Paing (minhtetpaing123) -->
+<!-- Country: Myanmar (Burma) -->
+<!-- Tech Stack: Laravel, PHP, Tailwind CSS, Vite, Dedicated Database, AI, HLS -->
 
-## About Laravel
+A modern, fast, and secure video-sharing platform tailored for users in Myanmar. This open-source project is fully designed and developed by **[Min Htet Paing](https://github.com)**.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 👤 About the Creator
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+This project is created and maintained by **Min Htet Paing**. 
+* **GitHub Profile:** [@minhtetpaing123](https://github.com)
+* **Role:** Lead Full-Stack Developer & Project Founder
+* **Project Name:** m-video (Myanmar Video Sharing Community)
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## 🚀 Key Features
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+* **Expressive Routing & Backend:** Powered by the robust **Laravel Framework** for enterprise-grade security and reliability.
+* **Modern UI/UX:** Styled beautifully using **Tailwind CSS** and bundled via **Vite** for blazing-fast frontend performance.
+* **Localization:** Optimized for Myanmar Unicode font rendering and seamless local UX flow.
+* **Blade Templates:** Utilizing clean and reusable Laravel Blade structural architecture.
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 🛠️ Tech Stack & Architecture
 
-### Premium Partners
+* **Backend Framework:** PHP (Laravel)
+* **Frontend Design:** Tailwind CSS, Blade Template Engines, JavaScript, HTML
+* **Build Tool:** Vite
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+---
 
-## Contributing
+## 🗺️ Future Roadmap & Next-Gen Upgrades
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+To scale **M-Video** into a world-class platform, the following cutting-edge technologies are planned for integration:
 
-## Code of Conduct
+*   **🗄️ Self-Hosted Dedicated Database Infrastructure:** 
+    Moving away from shared databases to establish a **custom dedicated database infrastructure** (utilizing **PostgreSQL / MySQL Clusters with Replication**). This will ensure ultra-low latency, maximum data privacy, sovereign control over user data, and high concurrency handling for millions of concurrent Myanmar users.
+*   **⚡ AI-Generated Subtitles & Transcription:** 
+    Implementing Speech-to-Text AI models (like OpenAI Whisper) to auto-generate accurate Myanmar subtitles and captions for all uploaded videos.
+*   **🤖 Smart Recommendation Engine:** 
+    Integrating Machine Learning algorithms to build a personalized, data-driven video feed tailored to individual user preferences (TikTok/YouTube style).
+*   **🎬 Adaptive Bitrate Streaming (HLS/DASH):** 
+    Implementing **FFmpeg** on the backend to transcode high-definition videos into HLS streams, ensuring ultra-smooth, buffer-free playback even on slow local mobile networks.
+*   **☁️ Cloud Native Storage & CDN:** 
+    Utilizing secure object storage (AWS S3 / DigitalOcean Spaces) paired with Cloudflare CDN for lightning-fast global and local content delivery.
+*   **📱 Advanced Video Player:** 
+    Replacing the default player with customized **Video.js** or **Plyr** engines to support gesture controls, playback speed adjustment, and manual quality switching.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## ⚙️ Installation Guide
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Follow these steps to set up the repository locally:
 
-## License
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/m-video.git
+   cd m-video
+   ```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-=======
-# m-video
-Myanmar Video Sharing Platform - powered by Min Htet Paing
->>>>>>> 7efea1d22a0299642a7523e264438889ff81fd20
+2. **Install Dependencies:**
+   ```bash
+   composer install
+   npm install
+   ```
+
+3. **Environment Setup:**
+   Copy the example environment file and generate the application key:
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+4. **Database Configuration:**
+   Configure your `.env` database parameters, then run migrations:
+   ```bash
+   php artisan migrate
+   ```
+
+5. **Run the Application:**
+   ```bash
+   npm run dev
+   php artisan serve
+   ```
+
+---
+
+## 🤝 Contributing
+
+Contributions to improve the **M-Video** platform are always welcome! If you are a developer from Myanmar or anywhere around the world, feel free to fork this project, open issues, or submit pull requests.
+
+## 📝 License
+
+This open-sourced software is licensed under the **[MIT License](LICENSE)**.
+
+---
+*Developed with ❤️ by **Min Htet Paing** in Myanmar.*
