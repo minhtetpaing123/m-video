@@ -1,4 +1,4 @@
-// public/sw.js (Final Version)
+// public/sw.js (Production - Logout လုံးဝမကိုင်ဘူး)
 
 const CACHE_NAME = 'mvideo-v1';
 const VIDEO_CACHE = 'video-v1';
@@ -31,6 +31,11 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
     
+    // ✅ PRODUCTION: logout ကို လုံးဝမကိုင်ပါနဲ့
+    if (url.pathname === '/logout' || url.pathname.includes('/logout')) {
+        return; // Browser ကိုယ်တိုင်ကိုင်ခွင့်ပေးတယ်
+    }
+    
     console.log('🔍 Fetch:', url.pathname);
     
     // Cache video requests
@@ -40,7 +45,6 @@ self.addEventListener('fetch', event => {
         
         event.respondWith(
             caches.open(VIDEO_CACHE).then(async cache => {
-                // Check cache first
                 let response = await cache.match(event.request);
                 
                 if (response) {
@@ -52,7 +56,6 @@ self.addEventListener('fetch', event => {
                     console.log('⬇️ Fetching:', url.pathname);
                     response = await fetch(event.request);
                     
-                    // Cache successful responses
                     if (response && response.status === 200) {
                         const clone = response.clone();
                         cache.put(event.request, clone);

@@ -19,7 +19,8 @@ use Illuminate\Support\Facades\Cache;
 // ============================================
 // PUBLIC ROUTES
 // ============================================
-
+Route::get('/video/download/{post}', [App\Http\Controllers\VideoController::class, 'downloadPage'])->name('video.download.page');
+Route::get('/video/download/{post}/file', [App\Http\Controllers\VideoController::class, 'downloadFile'])->name('video.download.file');
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/posts/{post}/info', [App\Http\Controllers\DescriptionController::class, 'show'])->name('posts.description');
 Route::get('/category/{category}', [HomeController::class, 'index'])->name('category.filter');

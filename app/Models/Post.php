@@ -32,6 +32,7 @@ class Post extends Model
         'likes_count',
         'comments_count',
         'shares_count',
+        'views_count',          // ✅ ထည့်ပါ
         'notification_enabled'
     ];
 
@@ -41,6 +42,7 @@ class Post extends Model
         'likes_count' => 'integer',
         'comments_count' => 'integer',
         'shares_count' => 'integer',
+        'views_count' => 'integer',     // ✅ ထည့်ပါ
         'notification_enabled' => 'boolean',
         'is_mature' => 'boolean',
         'video_duration' => 'integer',

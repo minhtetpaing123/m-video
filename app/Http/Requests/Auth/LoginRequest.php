@@ -41,7 +41,11 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        // ✅ ဒီနေရာကို ပြင်ထားတယ်
+        // checkbox ရဲ့ value ကို သေချာဖတ်ဖို့
+        $remember = $this->has('remember') ? $this->boolean('remember') : false;
+
+        if (! Auth::attempt($this->only('email', 'password'), $remember)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

@@ -91,6 +91,32 @@ class ProcessVideoJob implements ShouldQueue
             }
 
             // ============================================
+            // ADD WATERMARK (12px) AND RE-UPLOAD
+            // ============================================
+            $watermarkedPath = $tempDir . '/watermarked_' . $this->post->id . '_' . time() . '.mp4';
+            $watermarkAdded = $this->addWatermark($tempVideoPath, $watermarkedPath);
+            
+            if ($watermarkAdded && file_exists($watermarkedPath) && filesize($watermarkedPath) > 0) {
+                // Upload watermarked video to Bunny
+                $watermarkedContent = file_get_contents($watermarkedPath);
+                $watermarkedFileName = 'watermarked_' . $this->post->id . '_' . time() . '.mp4';
+                $watermarkedPathBunny = "videos/{$watermarkedFileName}";
+                
+                $uploadResult = $this->bunny->upload($watermarkedContent, $watermarkedPathBunny, 'video/mp4');
+                
+                if ($uploadResult['success']) {
+                    // Update post with watermarked video URL
+                    $this->post->video_cdn_url = $uploadResult['cdn_url'];
+                    $this->post->video_path = $watermarkedPathBunny;
+                    Log::info('Watermarked video uploaded to Bunny: ' . $watermarkedPathBunny);
+                }
+                
+                @unlink($watermarkedPath);
+            } else {
+                Log::warning('Watermark addition failed, using original video');
+            }
+
+            // ============================================
             // UPDATE POST STATUS WITH DURATION
             // ============================================
             $this->post->video_duration = $duration;
@@ -102,13 +128,48 @@ class ProcessVideoJob implements ShouldQueue
             
             Log::info('Video processing completed for post: ' . $this->post->id, [
                 'duration' => $duration,
-                'thumbnail' => $thumbnailUploaded ? 'uploaded' : 'skipped'
+                'thumbnail' => $thumbnailUploaded ? 'uploaded' : 'skipped',
+                'watermark' => $watermarkAdded ? 'added (12px)' : 'skipped'
             ]);
 
         } catch (\Exception $e) {
             Log::error('Video processing failed: ' . $e->getMessage());
             $this->post->update(['video_status' => 'failed']);
             throw $e;
+        }
+    }
+
+    /**
+     * Add watermark to video using FFmpeg (12px, Top Left Corner)
+     */
+    private function addWatermark($inputPath, $outputPath)
+    {
+        try {
+            if (!file_exists($inputPath)) {
+                Log::error('Input video not found for watermark: ' . $inputPath);
+                return false;
+            }
+
+            $watermarkText = 'M-VIDEO';
+            
+            // Font Size 12px, Top Left Corner (x=10, y=10)
+            $command = $this->ffmpegPath . ' -i "' . $inputPath . '" ' .
+                       '-vf "drawtext=fontfile=/data/data/com.termux/files/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text=' . $watermarkText . ':fontcolor=white:fontsize=12:box=1:boxcolor=black@0.4:boxborderw=3:x=10:y=10" ' .
+                       '-c:a copy "' . $outputPath . '" 2>&1';
+            
+            Log::info('FFmpeg watermark command: ' . $command);
+            shell_exec($command);
+            
+            if (file_exists($outputPath) && filesize($outputPath) > 0) {
+                Log::info('Watermark added successfully (12px): ' . $outputPath);
+                return true;
+            }
+            
+            return false;
+
+        } catch (\Exception $e) {
+            Log::error('Watermark addition failed: ' . $e->getMessage());
+            return false;
         }
     }
 

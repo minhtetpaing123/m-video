@@ -28,6 +28,9 @@ class PostController extends Controller
      */
     public function show(Post $post)
     {
+        // ✅ View Count တိုး
+        $post->increment('views_count');
+        
         return view('posts.show', compact('post'));
     }
 
