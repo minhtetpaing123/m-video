@@ -16,6 +16,13 @@
 @php
     $getStreamUrl = function($path) {
         if (!$path) return '';
+        
+        // Bunny CDN URL - တိုက်ရိုက်ပြန်ပေး
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path;
+        }
+        
+        // Local storage fallback
         if (str_starts_with($path, 'public/')) {
             $path = substr($path, 7);
         }
@@ -23,7 +30,7 @@
         return route('video.stream', ['path' => $path]);
     };
 
-    // Get actual URLs
+    // Get actual URLs - Bunny CDN ကို အရင်ဦးစားပေး
     $url1080 = $getStreamUrl($src_1080 ?? $src);
     $url720 = $getStreamUrl($src_720 ?? $src);
     $url480 = $getStreamUrl($src_480);
@@ -93,7 +100,7 @@
 
         <!-- Double Tap Indicators -->
         <div class="rewind-indicator absolute left-0 top-0 w-1/3 h-full flex flex-col items-center justify-center bg-black/30 opacity-0 pointer-events-none transition-opacity duration-200 z-20">
-            <svg class="w-8 h-8 text-white fill-current" viewBox="0 0 24 24"><path d="M12.5 19.38M11.5 19.38l-7-5 7-5v10zm8-10l-7 5 7 5v-10z"/></svg>
+            <svg class="w-8 h-8 text-white fill-current" viewBox="0 0 24 24"><path d="M12.5 19.38M11.5 19.38l-7-5 7-5v10zm8-10l-7 5 7-5v10z"/></svg>
             <span class="text-white text-xs font-semibold mt-1">-10s</span>
         </div>
 
@@ -230,7 +237,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function detectAutoQuality() {
         if (!isAutoQuality) return;
         
-        // Get network speed or connection type
         let connectionType = 'slow';
         if (navigator.connection) {
             const conn = navigator.connection;
@@ -239,20 +245,12 @@ document.addEventListener('DOMContentLoaded', function() {
             else connectionType = 'slow';
         }
         
-        // Get video dimensions or use quality based on connection
         let selectedQuality = '720p';
+        if (connectionType === 'fast') selectedQuality = '1080p';
+        else if (connectionType === 'medium') selectedQuality = '720p';
+        else selectedQuality = '480p';
         
-        if (connectionType === 'fast') {
-            selectedQuality = '1080p';
-        } else if (connectionType === 'medium') {
-            selectedQuality = '720p';
-        } else {
-            selectedQuality = '480p';
-        }
-        
-        // Check if selected quality is available
         if (!availableQualities[selectedQuality]) {
-            // Find the next available quality
             for (let q of qualityPriority) {
                 if (availableQualities[q]) {
                     selectedQuality = q;
@@ -261,7 +259,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Change quality if needed
         const currentSrc = video.src;
         const newSrc = availableQualities[selectedQuality];
         if (newSrc && currentSrc !== newSrc) {
@@ -448,16 +445,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const currentSpeed = video.playbackRate;
                     
                     if (isAuto) {
-                        // Auto mode - detect quality
                         isAutoQuality = true;
                         qualityBtn.textContent = 'Auto';
                         qualityOpts.forEach(o => o.classList.remove('font-bold', 'text-red-500'));
                         this.classList.add('font-bold', 'text-red-500');
-                        
-                        // Run auto detection
                         detectAutoQuality();
                     } else if (newSrc && newSrc !== 'auto') {
-                        // Manual quality selection
                         isAutoQuality = false;
                         video.src = newSrc;
                         qualityBtn.textContent = label;
@@ -549,11 +542,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if(video.muted) { volUpSvg.classList.add('hidden'); volMuteSvg.classList.remove('hidden'); }
         const savedTime = localStorage.getItem('video_time_' + '{{ md5($src) }}');
         if (savedTime) { const saved = parseFloat(savedTime); if (saved < video.duration) video.currentTime = saved; }
-        
-        // If Auto mode is enabled, detect quality
-        if (isAutoQuality) {
-            detectAutoQuality();
-        }
+        if (isAutoQuality) detectAutoQuality();
     });
 
     seekSlider.addEventListener('input', function() {
@@ -632,7 +621,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isPlaying) {
             controlsBar.style.opacity = '0';
         }
-        // Auto detect quality on start
         if (isAutoQuality) {
             setTimeout(detectAutoQuality, 1000);
         }

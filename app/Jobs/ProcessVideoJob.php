@@ -3,19 +3,21 @@
 namespace App\Jobs;
 
 use App\Models\Post;
+use App\Services\BunnyStorageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProcessVideoJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $post;
+    protected $bunny;
     protected $ffmpegPath = '/data/data/com.termux/files/usr/bin/ffmpeg';
 
     public $tries = 3;
@@ -26,63 +28,86 @@ class ProcessVideoJob implements ShouldQueue
         $this->post = $post;
     }
 
-    public function handle()
+    public function handle(BunnyStorageService $bunny)
     {
+        $this->bunny = $bunny;
+
         try {
-            $videoPath = $this->post->video;
-            
-            if (!$videoPath) {
-                Log::warning('No video found for post: ' . $this->post->id);
+            if (!$this->post->video_path) {
+                Log::warning('No video path found for post: ' . $this->post->id);
                 return;
             }
 
-            $fullPath = storage_path('app/public/' . $videoPath);
-            
-            if (!file_exists($fullPath)) {
-                Log::error('Video file not found: ' . $fullPath);
-                return;
+            Log::info('Processing video from Bunny for post: ' . $this->post->id);
+
+            $this->post->update(['video_status' => 'processing']);
+
+            // ============================================
+            // DOWNLOAD VIDEO FROM BUNNY
+            // ============================================
+            $tempDir = storage_path('app/temp');
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0755, true);
             }
 
-            Log::info('Processing video for post: ' . $this->post->id);
+            $tempVideoPath = $tempDir . '/video_' . $this->post->id . '_' . time() . '.mp4';
+            
+            $downloadResult = $this->bunny->download($this->post->video_path);
+            
+            if (!$downloadResult['success']) {
+                throw new \Exception('Failed to download video from Bunny: ' . $downloadResult['error']);
+            }
+
+            file_put_contents($tempVideoPath, $downloadResult['content']);
+            Log::info('Video downloaded from Bunny: ' . $this->post->video_path);
 
             // ============================================
-            // GENERATE THUMBNAIL (ONLY IF NO MANUAL THUMBNAIL)
+            // GET VIDEO DURATION
             // ============================================
+            $duration = $this->getVideoDuration($tempVideoPath);
+            Log::info('Video duration: ' . $duration . ' seconds');
+
+            // ============================================
+            // GENERATE THUMBNAIL
+            // ============================================
+            $thumbnailUploaded = false;
             if (!$this->post->video_thumbnail) {
-                $thumbnailPath = $this->generateThumbnail($videoPath);
-                if ($thumbnailPath) {
-                    $this->post->video_thumbnail = $thumbnailPath;
-                    Log::info('Auto thumbnail generated for post: ' . $this->post->id);
-                } else {
-                    // Fallback if auto generation fails
-                    $fallbackThumbnail = $this->generateFallbackThumbnail($videoPath);
-                    if ($fallbackThumbnail) {
-                        $this->post->video_thumbnail = $fallbackThumbnail;
-                        Log::info('Fallback thumbnail generated for post: ' . $this->post->id);
+                $thumbnailResult = $this->generateThumbnail($tempVideoPath);
+                if ($thumbnailResult) {
+                    $thumbPath = "thumbnails/thumb_{$this->post->id}_" . time() . '.jpg';
+                    $thumbContent = file_get_contents($thumbnailResult);
+                    
+                    $uploadResult = $this->bunny->upload($thumbContent, $thumbPath, 'image/jpeg');
+                    
+                    if ($uploadResult['success']) {
+                        $this->post->video_thumbnail = $thumbPath;
+                        $this->post->video_thumbnail_url = $uploadResult['cdn_url'];
+                        Log::info('Auto thumbnail uploaded to Bunny for post: ' . $this->post->id);
+                        $thumbnailUploaded = true;
                     }
+                    
+                    @unlink($thumbnailResult);
                 }
-            } else {
-                Log::info('Manual thumbnail exists, skipping auto generation for post: ' . $this->post->id);
             }
 
             // ============================================
-            // GENERATE VIDEO QUALITIES (720p, 480p, 360p)
+            // UPDATE POST STATUS WITH DURATION
             // ============================================
-            $baseName = pathinfo(basename($videoPath), PATHINFO_FILENAME);
-            $qualities = $this->generateVideoQualities($videoPath, $baseName);
-            if ($qualities) {
-                if (isset($qualities['720p'])) $this->post->video_720 = $qualities['720p'];
-                if (isset($qualities['480p'])) $this->post->video_480 = $qualities['480p'];
-                if (isset($qualities['360p'])) $this->post->video_360 = $qualities['360p'];
-                Log::info('Video qualities generated for post: ' . $this->post->id);
-            }
-
+            $this->post->video_duration = $duration;
+            $this->post->video_status = 'completed';
             $this->post->save();
             
-            Log::info('Video processing completed for post: ' . $this->post->id);
+            // Clean up temp video
+            @unlink($tempVideoPath);
+            
+            Log::info('Video processing completed for post: ' . $this->post->id, [
+                'duration' => $duration,
+                'thumbnail' => $thumbnailUploaded ? 'uploaded' : 'skipped'
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Video processing failed: ' . $e->getMessage());
+            $this->post->update(['video_status' => 'failed']);
             throw $e;
         }
     }
@@ -93,30 +118,39 @@ class ProcessVideoJob implements ShouldQueue
     private function generateThumbnail($videoPath)
     {
         try {
-            $fullPath = storage_path('app/public/' . $videoPath);
-            
-            if (!file_exists($fullPath)) {
+            if (!file_exists($videoPath)) {
+                Log::error('Video file not found for thumbnail: ' . $videoPath);
                 return null;
             }
 
-            $thumbnailPath = str_replace('posts/videos/', 'posts/thumbnails/', $videoPath);
-            $thumbnailPath = preg_replace('/\.[^.]+$/', '.jpg', $thumbnailPath);
-            $thumbnailFullPath = storage_path('app/public/' . $thumbnailPath);
+            $thumbnailPath = storage_path('app/temp/thumb_' . $this->post->id . '_' . time() . '.jpg');
+            $thumbnailDir = dirname($thumbnailPath);
             
-            $thumbnailDir = dirname($thumbnailFullPath);
             if (!file_exists($thumbnailDir)) {
                 mkdir($thumbnailDir, 0755, true);
             }
 
-            // Generate thumbnail from 1 second
-            $command = $this->ffmpegPath . ' -i "' . $fullPath . '" -ss 00:00:01 -vframes 1 -vf "scale=640:360" -q:v 2 "' . $thumbnailFullPath . '" 2>&1';
+            // Try 1 second
+            $command = $this->ffmpegPath . ' -i "' . $videoPath . '" -ss 00:00:01 -vframes 1 -vf "scale=640:360" -q:v 2 "' . $thumbnailPath . '" 2>&1';
             
+            Log::info('FFmpeg thumbnail command: ' . $command);
             shell_exec($command);
             
-            if (file_exists($thumbnailFullPath) && filesize($thumbnailFullPath) > 0) {
+            if (file_exists($thumbnailPath) && filesize($thumbnailPath) > 0) {
+                Log::info('Thumbnail generated: ' . $thumbnailPath);
                 return $thumbnailPath;
             }
             
+            // Try 5 seconds if 1 second fails
+            $command = $this->ffmpegPath . ' -i "' . $videoPath . '" -ss 00:00:05 -vframes 1 -vf "scale=640:360" -q:v 2 "' . $thumbnailPath . '" 2>&1';
+            shell_exec($command);
+            
+            if (file_exists($thumbnailPath) && filesize($thumbnailPath) > 0) {
+                Log::info('Thumbnail generated (5s): ' . $thumbnailPath);
+                return $thumbnailPath;
+            }
+            
+            Log::error('Thumbnail generation failed, file not created');
             return null;
 
         } catch (\Exception $e) {
@@ -126,95 +160,31 @@ class ProcessVideoJob implements ShouldQueue
     }
 
     /**
-     * Generate fallback thumbnail (colored gradient with play icon)
-     * No FFmpeg required!
+     * Get video duration using FFmpeg
      */
-    private function generateFallbackThumbnail($videoPath)
+    private function getVideoDuration($videoPath)
     {
         try {
-            $thumbnailPath = str_replace('posts/videos/', 'posts/thumbnails/', $videoPath);
-            $thumbnailPath = preg_replace('/\.[^.]+$/', '.jpg', $thumbnailPath);
-            $thumbnailFullPath = storage_path('app/public/' . $thumbnailPath);
-            
-            $thumbnailDir = dirname($thumbnailFullPath);
-            if (!file_exists($thumbnailDir)) {
-                mkdir($thumbnailDir, 0755, true);
+            if (!file_exists($videoPath)) {
+                Log::error('Video file not found for duration: ' . $videoPath);
+                return null;
             }
 
-            $width = 640;
-            $height = 360;
-            $image = imagecreatetruecolor($width, $height);
+            // Using FFmpeg command
+            $command = $this->ffmpegPath . ' -i "' . $videoPath . '" 2>&1 | grep -oP "Duration: \K[0-9:]+"';
+            $output = shell_exec($command);
             
-            $colors = [
-                ['#667eea', '#764ba2'],
-                ['#ff6b6b', '#ff8e53'],
-                ['#00b09b', '#96c93d'],
-                ['#4776E6', '#8E54E9'],
-                ['#FF416C', '#FF4B2B'],
-                ['#0f2027', '#2c5364'],
-                ['#d53369', '#cbad6d'],
-                ['#f7971e', '#ffd200'],
-                ['#1a2980', '#26d0ce'],
-                ['#8A2387', '#E94057'],
-            ];
-            
-            $colorPair = $colors[array_rand($colors)];
-            
-            $r1 = hexdec(substr($colorPair[0], 1, 2));
-            $g1 = hexdec(substr($colorPair[0], 3, 2));
-            $b1 = hexdec(substr($colorPair[0], 5, 2));
-            $r2 = hexdec(substr($colorPair[1], 1, 2));
-            $g2 = hexdec(substr($colorPair[1], 3, 2));
-            $b2 = hexdec(substr($colorPair[1], 5, 2));
-            
-            for ($i = 0; $i < $height; $i++) {
-                $ratio = $i / $height;
-                $r = $r1 + ($r2 - $r1) * $ratio;
-                $g = $g1 + ($g2 - $g1) * $ratio;
-                $b = $b1 + ($b2 - $b1) * $ratio;
-                
-                $color = imagecolorallocate($image, $r, $g, $b);
-                imageline($image, 0, $i, $width, $i, $color);
+            if ($output && preg_match('/(\d+):(\d+):(\d+)/', $output, $matches)) {
+                $hours = (int) $matches[1];
+                $minutes = (int) $matches[2];
+                $seconds = (int) $matches[3];
+                return ($hours * 3600) + ($minutes * 60) + $seconds;
             }
             
-            $centerX = $width / 2;
-            $centerY = $height / 2;
-            $white = imagecolorallocate($image, 255, 255, 255);
-            $shadow = imagecolorallocate($image, 0, 0, 0);
-            
-            // Shadow
-            $points = [
-                $centerX - 25 + 2, $centerY - 30 + 2,
-                $centerX - 25 + 2, $centerY + 30 + 2,
-                $centerX + 30 + 2, $centerY + 2
-            ];
-            imagefilledpolygon($image, $points, 3, $shadow);
-            
-            // Main play triangle
-            $points = [
-                $centerX - 25, $centerY - 30,
-                $centerX - 25, $centerY + 30,
-                $centerX + 30, $centerY
-            ];
-            imagefilledpolygon($image, $points, 3, $white);
-            
-            $text = 'M-VIDEO';
-            $textColor = imagecolorallocate($image, 255, 255, 255);
-            $fontPath = public_path('fonts/arial.ttf');
-            
-            if (file_exists($fontPath)) {
-                imagettftext($image, 20, 0, 20, $height - 20, $textColor, $fontPath, $text);
-            } else {
-                imagestring($image, 5, 20, $height - 30, $text, $textColor);
-            }
-            
-            imagejpeg($image, $thumbnailFullPath, 80);
-            imagedestroy($image);
-            
-            return $thumbnailPath;
-            
+            return null;
+
         } catch (\Exception $e) {
-            Log::error('Fallback thumbnail generation failed: ' . $e->getMessage());
+            Log::error('Duration extraction failed: ' . $e->getMessage());
             return null;
         }
     }
@@ -222,52 +192,46 @@ class ProcessVideoJob implements ShouldQueue
     /**
      * Generate multiple video qualities using FFmpeg
      */
-    private function generateVideoQualities($videoPath, $baseName)
+    private function generateVideoQualities($videoPath)
     {
         try {
-            $fullPath = storage_path('app/public/' . $videoPath);
-            
-            if (!file_exists($fullPath)) {
-                Log::error('Video file not found for quality generation: ' . $fullPath);
+            if (!file_exists($videoPath)) {
+                Log::error('Video file not found for quality generation: ' . $videoPath);
                 return null;
             }
 
             $qualities = [
-                '720p' => ['scale' => '1280:720', 'bitrate' => '2000k'],
-                '480p' => ['scale' => '854:480', 'bitrate' => '1000k'],
-                '360p' => ['scale' => '640:360', 'bitrate' => '600k'],
+                '720' => ['scale' => '1280:720', 'bitrate' => '2000k'],
+                '480' => ['scale' => '854:480', 'bitrate' => '1000k'],
+                '360' => ['scale' => '640:360', 'bitrate' => '600k'],
             ];
 
             $generated = [];
+            $tempDir = storage_path('app/temp');
 
             foreach ($qualities as $key => $quality) {
-                $outputFilename = $baseName . '_' . $key . '.mp4';
-                $outputPath = 'posts/videos/' . $outputFilename;
-                $outputFullPath = storage_path('app/public/' . $outputPath);
-
-                if (file_exists($outputFullPath)) {
-                    $generated[$key] = $outputPath;
-                    Log::info('Quality already exists:', ['path' => $outputPath]);
-                    continue;
+                $tempPath = $tempDir . '/quality_' . $key . '_' . $this->post->id . '_' . time() . '.mp4';
+                
+                if (!file_exists($tempDir)) {
+                    mkdir($tempDir, 0755, true);
                 }
 
-                $command = $this->ffmpegPath . ' -i "' . $fullPath . '" ' .
+                $command = $this->ffmpegPath . ' -i "' . $videoPath . '" ' .
                            '-vf "scale=' . $quality['scale'] . '" ' .
                            '-c:v libx264 -crf 23 -preset medium ' .
                            '-b:v ' . $quality['bitrate'] . ' ' .
                            '-c:a aac -b:a 128k ' .
                            '-movflags +faststart ' .
-                           '"' . $outputFullPath . '" 2>&1';
+                           '"' . $tempPath . '" 2>&1';
 
-                Log::info('FFmpeg quality command:', ['command' => $command]);
-
+                Log::info('FFmpeg quality command for ' . $key . 'p: ' . $command);
                 $output = shell_exec($command);
 
-                if (file_exists($outputFullPath) && filesize($outputFullPath) > 0) {
-                    $generated[$key] = $outputPath;
-                    Log::info('Quality generated:', ['path' => $outputPath, 'label' => $key]);
+                if (file_exists($tempPath) && filesize($tempPath) > 0) {
+                    $generated[$key] = $tempPath;
+                    Log::info('Quality generated:', ['label' => $key . 'p', 'path' => $tempPath]);
                 } else {
-                    Log::error('Quality generation failed:', ['label' => $key, 'output' => $output]);
+                    Log::error('Quality generation failed:', ['label' => $key . 'p', 'output' => $output]);
                 }
             }
 

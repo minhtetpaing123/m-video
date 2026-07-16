@@ -17,50 +17,38 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Cache;
 
 // ============================================
-// PUBLIC ROUTES (Login မဝင်ရသေးတဲ့ User တွေအတွက်)
+// PUBLIC ROUTES
 // ============================================
 
-// Home Page
 Route::get('/', [HomeController::class, 'index'])->name('home');
-
-// Info/Description Page
-Route::get('/posts/{post}/info', [App\Http\Controllers\DescriptionController::class, 'show'])
-    ->name('posts.description');
-    
-// Category Filter Route
+Route::get('/posts/{post}/info', [App\Http\Controllers\DescriptionController::class, 'show'])->name('posts.description');
 Route::get('/category/{category}', [HomeController::class, 'index'])->name('category.filter');
-
-// 18+ Category Route (သီးသန့်)
 Route::get('/18plus', [HomeController::class, 'index'])->name('category.18plus');
 
-// Video Streaming - PUBLIC
+// Video Streaming - Redirect to Bunny CDN
 Route::get('/video/{path}', [VideoController::class, 'stream'])
     ->where('path', '.*')
     ->name('video.stream');
 
-// ============================================
-// POST SHOW - PUBLIC (အကုန်လုံးကြည့်လို့ရ)
-// ============================================
 Route::get('/posts/{post}', [PostController::class, 'show'])->name('posts.show');
 
 // ============================================
-// AUTHENTICATED ROUTES (Login ဝင်ထားမှပဲရ)
+// AUTHENTICATED ROUTES (Web - CSRF Required)
 // ============================================
 
 Route::middleware(['auth', 'verified'])->group(function () {
     
-    // Dashboard
     Route::get('/dashboard', [PostController::class, 'index'])->name('dashboard');
-    
-    // User Posts
     Route::get('/user/{user}/posts', [PostController::class, 'userPosts'])->name('user.posts');
     
-    // Post CRUD (Create, Update, Delete)
-    Route::post('/posts', [MediaUploadController::class, 'store'])->name('posts.store');
+    // ============================================
+    // POST ROUTES - MediaUploadController (Web - CSRF Protected)
+    // ============================================
+    Route::post('/post/store', [MediaUploadController::class, 'store'])->name('posts.store');
     Route::put('/posts/{post}', [PostCrudController::class, 'update'])->name('posts.update');
     Route::delete('/posts/{post}', [PostCrudController::class, 'destroy'])->name('posts.destroy');
     
-    // Media Upload Routes
+    // Media Upload Routes (Web)
     Route::post('/media/upload/image', [MediaUploadController::class, 'uploadImage'])->name('media.upload.image');
     Route::post('/media/upload/video', [MediaUploadController::class, 'uploadVideo'])->name('media.upload.video');
     Route::post('/media/upload/url', [MediaUploadController::class, 'processUrl'])->name('media.upload.url');
@@ -97,13 +85,43 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // ============================================
-// API ROUTES
+// API ROUTES (No CSRF Required - For curl/Postman)
 // ============================================
 
-Route::middleware(['auth'])->prefix('api')->group(function () {
-    Route::post('/posts/{post}/like', [ReactionController::class, 'store']);
-    Route::get('/posts/{post}/reactions', [ReactionController::class, 'index']);
-    Route::get('/posts/{post}/comments', [CommentController::class, 'index']);
+Route::prefix('api')->group(function () {
+    
+    // ============================================
+    // PUBLIC API ROUTES (No auth required)
+    // ============================================
+    Route::get('/videos', [VideoController::class, 'index']);
+    Route::get('/videos/{id}', [VideoController::class, 'show']);
+    Route::get('/categories', function () {
+        return response()->json([
+            'categories' => App\Models\Post::getCategories()
+        ]);
+    });
+    
+    // ============================================
+    // AUTHENTICATED API ROUTES (CSRF Exempt)
+    // ============================================
+    Route::middleware(['auth'])->group(function () {
+        
+        // Video Upload API (NO CSRF)
+        Route::post('/post/store', [MediaUploadController::class, 'store']);
+        Route::post('/post/upload-image', [MediaUploadController::class, 'uploadImage']);
+        Route::post('/post/upload-video', [MediaUploadController::class, 'uploadVideo']);
+        Route::post('/post/process-url', [MediaUploadController::class, 'processUrl']);
+        Route::delete('/post/delete-file', [MediaUploadController::class, 'deleteFile']);
+        
+        // Post Interactions
+        Route::post('/posts/{post}/like', [ReactionController::class, 'store']);
+        Route::get('/posts/{post}/reactions', [ReactionController::class, 'index']);
+        Route::get('/posts/{post}/comments', [CommentController::class, 'index']);
+        
+        // Video CRUD
+        Route::delete('/videos/{id}', [VideoController::class, 'destroy']);
+        Route::get('/videos/bunny-files', [VideoController::class, 'listBunnyFiles']);
+    });
 });
 
 // ============================================

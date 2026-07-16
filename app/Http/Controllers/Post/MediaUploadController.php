@@ -4,36 +4,41 @@ namespace App\Http\Controllers\Post;
 
 use App\Http\Controllers\Controller;
 use App\Models\Post;
+use App\Services\BunnyStorageService;
 use App\Jobs\ProcessVideoJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class MediaUploadController extends Controller
 {
+    protected $bunny;
+
+    public function __construct(BunnyStorageService $bunny)
+    {
+        $this->bunny = $bunny;
+    }
+
     /**
-     * Store a new post with text, image, video, or link
+     * Store a new post with text, image, or video
      */
     public function store(Request $request)
     {
         try {
-            Log::info('=== Post Store Request ===');
-            Log::info('Request data:', [
-                'title' => $request->title,
-                'content' => $request->content,
-                'description' => $request->description,
-                'privacy' => $request->privacy,
-                'category' => $request->category,
-                'is_mature' => $request->has('is_mature'),
-                'has_image' => $request->hasFile('image'),
-                'has_video' => $request->hasFile('video'),
-                'has_thumbnail' => $request->hasFile('video_thumbnail'),
-                'has_link' => $request->filled('link'),
-                'all_data' => $request->all()
-            ]);
+            Log::info('=== 🚀 Post Store Request (Bunny) ===');
+            Log::info('Request data:', $request->all());
+            Log::info('Has video? ' . ($request->hasFile('video') ? '✅ YES' : '❌ NO'));
+            Log::info('Has image? ' . ($request->hasFile('image') ? '✅ YES' : '❌ NO'));
+            
+            if ($request->hasFile('video')) {
+                Log::info('Video file info:', [
+                    'name' => $request->file('video')->getClientOriginalName(),
+                    'size' => $request->file('video')->getSize(),
+                    'mime' => $request->file('video')->getMimeType(),
+                ]);
+            }
 
             // ============================================
             // VALIDATION
@@ -45,20 +50,21 @@ class MediaUploadController extends Controller
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
                 'video' => 'nullable|mimes:mp4,mov,avi,wmv,flv,3gp,mkv|max:102400',
                 'video_thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
-                'link' => 'nullable|url|max:500',
                 'privacy' => 'required|in:public,friends,onlyme',
                 'category' => 'required|string|max:50',
                 'is_mature' => 'nullable|boolean',
             ]);
 
             if ($validator->fails()) {
-                Log::error('Validation failed:', $validator->errors()->toArray());
+                Log::error('❌ Validation failed:', $validator->errors()->toArray());
                 return redirect()->back()
                     ->withErrors($validator->errors())
                     ->withInput();
             }
 
-            // Create new post
+            // ============================================
+            // CREATE NEW POST
+            // ============================================
             $post = new Post();
             $post->user_id = Auth::id();
             $post->title = $request->title;
@@ -70,122 +76,114 @@ class MediaUploadController extends Controller
             $post->likes_count = 0;
             $post->comments_count = 0;
             $post->shares_count = 0;
+            $post->video_status = 'pending';
 
-            // Handle Image Upload
+            // ============================================
+            // HANDLE IMAGE UPLOAD (to Bunny)
+            // ============================================
             if ($request->hasFile('image') && $request->file('image')->isValid()) {
                 $file = $request->file('image');
                 $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('posts/images', $filename, 'public');
-                $post->image = $path;
-                Log::info('Image uploaded:', ['path' => $path]);
+                $path = "images/{$filename}";
+
+                $result = $this->bunny->upload(
+                    $file->getContent(),
+                    $path,
+                    $file->getMimeType()
+                );
+
+                if ($result['success']) {
+                    $post->image = $path;
+                    Log::info('✅ Image uploaded to Bunny:', ['path' => $path, 'cdn_url' => $result['cdn_url']]);
+                } else {
+                    Log::error('❌ Image upload to Bunny failed:', ['error' => $result['error']]);
+                }
             }
 
             // ============================================
-            // HANDLE VIDEO UPLOAD
+            // HANDLE VIDEO UPLOAD (to Bunny)
             // ============================================
             if ($request->hasFile('video') && $request->file('video')->isValid()) {
                 $file = $request->file('video');
                 $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('posts/videos', $filename, 'public');
-                $post->video = $path;
-                Log::info('Video uploaded:', ['path' => $path]);
+                $path = "videos/{$filename}";
 
-                // ============================================
-                // MANUAL THUMBNAIL UPLOAD (Optional)
-                // ============================================
-                if ($request->hasFile('video_thumbnail') && $request->file('video_thumbnail')->isValid()) {
-                    $thumbFile = $request->file('video_thumbnail');
-                    $thumbFilename = time() . '_thumb_' . Str::random(10) . '.' . $thumbFile->getClientOriginalExtension();
-                    $thumbPath = $thumbFile->storeAs('posts/thumbnails', $thumbFilename, 'public');
-                    $post->video_thumbnail = $thumbPath;
-                    Log::info('Manual thumbnail uploaded:', ['path' => $thumbPath]);
+                Log::info('📤 Uploading video to Bunny:', ['path' => $path, 'size' => $file->getSize()]);
+
+                $result = $this->bunny->upload(
+                    $file->getContent(),
+                    $path,
+                    $file->getMimeType()
+                );
+
+                if ($result['success']) {
+                    $post->video_path = $path;
+                    $post->video_cdn_url = $result['cdn_url'];
+                    $post->video_original = $file->getClientOriginalName();
+                    $post->video_size = $file->getSize();
+                    $post->video_status = 'uploaded';
+                    
+                    Log::info('✅ Video uploaded to Bunny successfully:', [
+                        'path' => $path,
+                        'cdn_url' => $result['cdn_url']
+                    ]);
+
+                    // ============================================
+                    // HANDLE VIDEO THUMBNAIL (to Bunny)
+                    // ============================================
+                    if ($request->hasFile('video_thumbnail') && $request->file('video_thumbnail')->isValid()) {
+                        $thumbFile = $request->file('video_thumbnail');
+                        $thumbFilename = time() . '_thumb_' . Str::random(10) . '.' . $thumbFile->getClientOriginalExtension();
+                        $thumbPath = "thumbnails/{$thumbFilename}";
+
+                        $thumbResult = $this->bunny->upload(
+                            $thumbFile->getContent(),
+                            $thumbPath,
+                            $thumbFile->getMimeType()
+                        );
+
+                        if ($thumbResult['success']) {
+                            $post->video_thumbnail = $thumbPath;
+                            $post->video_thumbnail_url = $thumbResult['cdn_url'];
+                            Log::info('✅ Thumbnail uploaded to Bunny:', ['path' => $thumbPath]);
+                        }
+                    }
+                } else {
+                    Log::error('❌ Video upload to Bunny failed:', ['error' => $result['error']]);
                 }
-                // If no manual thumbnail, auto-generate will happen in background job
             }
 
             // ============================================
-            // HANDLE EXTERNAL LINK (ပြင်ဆင်ထားတယ် - Vimeo အတွက်)
+            // 💾 SAVE POST - ဒီမှာ သိမ်းတယ်
             // ============================================
-            if ($request->filled('link')) {
-                $link = $request->link;
-                
-                // =============================================
-                // VIMEO LINK ကို သန့်ရှင်းအောင်လုပ်မယ်
-                // =============================================
-                if (str_contains($link, 'vimeo.com')) {
-                    // ? နဲ့စတဲ့ Parameters တွေကိုဖြုတ်မယ်
-                    $link = strtok($link, '?');
-                    Log::info('Vimeo link cleaned:', ['original' => $request->link, 'cleaned' => $link]);
-                }
-                
-                $post->link = $link;
-                $post->link_title = $this->getLinkTitle($link);
-                Log::info('Link added:', [
-                    'link' => $link,
-                    'title' => $post->link_title
-                ]);
-            }
-
             $post->save();
 
-            Log::info('Post saved successfully:', [
+            Log::info('✅ Post saved successfully to database:', [
                 'post_id' => $post->id,
                 'title' => $post->title,
-                'description' => $post->description,
-                'category' => $post->category,
-                'is_mature' => $post->is_mature,
-                'video' => $post->video,
-                'thumbnail' => $post->video_thumbnail ?? 'auto (will generate)',
-                'image' => $post->image
+                'video_path' => $post->video_path,
+                'video_cdn_url' => $post->video_cdn_url,
+                'video_status' => $post->video_status,
+                'image_path' => $post->image,
             ]);
 
             // ============================================
             // DISPATCH BACKGROUND JOB FOR VIDEO PROCESSING
             // ============================================
-            if ($post->video) {
+            if ($post->video_path) {
                 ProcessVideoJob::dispatch($post);
-                Log::info('Video processing job dispatched for post: ' . $post->id);
+                Log::info('📤 Video processing job dispatched for post: ' . $post->id);
             }
 
             return redirect()->back()->with('success', 'Post created successfully!');
 
         } catch (\Exception $e) {
-            Log::error('Error creating post: ' . $e->getMessage());
+            Log::error('❌ Error creating post: ' . $e->getMessage());
             Log::error('Trace: ' . $e->getTraceAsString());
             return redirect()->back()
                 ->with('error', 'Failed to create post: ' . $e->getMessage())
                 ->withInput();
         }
-    }
-
-    /**
-     * Get link title from URL
-     */
-    private function getLinkTitle($url)
-    {
-        $domain = parse_url($url, PHP_URL_HOST);
-        $domain = str_replace('www.', '', $domain);
-        
-        $titles = [
-            'youtube.com' => 'YouTube Video',
-            'youtu.be' => 'YouTube Video',
-            'tiktok.com' => 'TikTok Video',
-            'instagram.com' => 'Instagram Post',
-            'facebook.com' => 'Facebook Video',
-            'fb.com' => 'Facebook Video',
-            'twitter.com' => 'Twitter Video',
-            'x.com' => 'Twitter Video',
-            'vimeo.com' => 'Vimeo Video',
-            'dailymotion.com' => 'Dailymotion Video',
-        ];
-        
-        foreach ($titles as $key => $title) {
-            if (str_contains($domain, $key)) {
-                return $title;
-            }
-        }
-        
-        return 'External Link';
     }
 
     /**
@@ -208,16 +206,28 @@ class MediaUploadController extends Controller
             if ($request->hasFile('image') && $request->file('image')->isValid()) {
                 $file = $request->file('image');
                 $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('temp/images', $filename, 'public');
-                $url = Storage::url($path);
+                $path = "temp/images/{$filename}";
+
+                $result = $this->bunny->upload(
+                    $file->getContent(),
+                    $path,
+                    $file->getMimeType()
+                );
+
+                if ($result['success']) {
+                    return response()->json([
+                        'success' => true,
+                        'path' => $path,
+                        'url' => $result['cdn_url'],
+                        'filename' => $filename,
+                        'message' => 'Image uploaded to Bunny successfully'
+                    ]);
+                }
 
                 return response()->json([
-                    'success' => true,
-                    'path' => $path,
-                    'url' => $url,
-                    'filename' => $filename,
-                    'message' => 'Image uploaded successfully'
-                ]);
+                    'success' => false,
+                    'message' => 'Failed to upload to Bunny: ' . $result['error']
+                ], 500);
             }
 
             return response()->json([
@@ -254,16 +264,28 @@ class MediaUploadController extends Controller
             if ($request->hasFile('video') && $request->file('video')->isValid()) {
                 $file = $request->file('video');
                 $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('temp/videos', $filename, 'public');
-                $url = Storage::url($path);
+                $path = "temp/videos/{$filename}";
+
+                $result = $this->bunny->upload(
+                    $file->getContent(),
+                    $path,
+                    $file->getMimeType()
+                );
+
+                if ($result['success']) {
+                    return response()->json([
+                        'success' => true,
+                        'path' => $path,
+                        'url' => $result['cdn_url'],
+                        'filename' => $filename,
+                        'message' => 'Video uploaded to Bunny successfully'
+                    ]);
+                }
 
                 return response()->json([
-                    'success' => true,
-                    'path' => $path,
-                    'url' => $url,
-                    'filename' => $filename,
-                    'message' => 'Video uploaded successfully'
-                ]);
+                    'success' => false,
+                    'message' => 'Failed to upload to Bunny: ' . $result['error']
+                ], 500);
             }
 
             return response()->json([
@@ -281,67 +303,7 @@ class MediaUploadController extends Controller
     }
 
     /**
-     * Process URL (for pasting video links)
-     */
-    public function processUrl(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'url' => 'required|url'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid URL'
-                ], 422);
-            }
-
-            $url = $request->url;
-            $domain = parse_url($url, PHP_URL_HOST);
-            $domain = str_replace('www.', '', $domain);
-            
-            $platforms = [
-                'youtube.com' => ['name' => 'YouTube', 'icon' => '🎬'],
-                'youtu.be' => ['name' => 'YouTube', 'icon' => '🎬'],
-                'tiktok.com' => ['name' => 'TikTok', 'icon' => '🎵'],
-                'instagram.com' => ['name' => 'Instagram', 'icon' => '📸'],
-                'facebook.com' => ['name' => 'Facebook', 'icon' => '👥'],
-                'fb.com' => ['name' => 'Facebook', 'icon' => '👥'],
-                'twitter.com' => ['name' => 'Twitter', 'icon' => '🐦'],
-                'x.com' => ['name' => 'Twitter', 'icon' => '🐦'],
-                'vimeo.com' => ['name' => 'Vimeo', 'icon' => '🎥'],
-            ];
-            
-            $platform = ['name' => 'External Link', 'icon' => '🔗'];
-            foreach ($platforms as $key => $data) {
-                if (str_contains($domain, $key)) {
-                    $platform = $data;
-                    break;
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'url' => $url,
-                'domain' => $domain,
-                'platform' => $platform['name'],
-                'icon' => $platform['icon'],
-                'title' => $platform['name'] . ' Video',
-                'message' => 'URL processed successfully'
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('URL process error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to process URL'
-            ], 500);
-        }
-    }
-
-    /**
-     * Delete temporary file
+     * Delete temporary file from Bunny
      */
     public function deleteFile(Request $request)
     {
@@ -360,24 +322,25 @@ class MediaUploadController extends Controller
             $path = $request->path;
             $path = str_replace('storage/', '', $path);
             
-            if (Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
+            $result = $this->bunny->delete($path);
+
+            if ($result['success']) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'File deleted successfully'
+                    'message' => 'File deleted from Bunny successfully'
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'File not found'
+                'message' => 'File not found on Bunny'
             ], 404);
 
         } catch (\Exception $e) {
             Log::error('File delete error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete file'
+                'message' => 'Failed to delete file: ' . $e->getMessage()
             ], 500);
         }
     }

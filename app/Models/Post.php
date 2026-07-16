@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Services\BunnyStorageService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class Post extends Model
 {
@@ -12,16 +14,18 @@ class Post extends Model
 
     protected $fillable = [
         'user_id',
+        'title',
         'content',
+        'description',
         'image',
-        'video',
+        'video_original',
+        'video_path',
+        'video_cdn_url',
         'video_thumbnail',
-        'video_720',
-        'video_480',
-        'video_360',
-        'link',
-        'link_title',
-        'link_thumbnail',
+        'video_thumbnail_url',
+        'video_duration',
+        'video_size',
+        'video_status',
         'privacy',
         'category',
         'is_mature',
@@ -38,7 +42,9 @@ class Post extends Model
         'comments_count' => 'integer',
         'shares_count' => 'integer',
         'notification_enabled' => 'boolean',
-        'is_mature' => 'boolean'
+        'is_mature' => 'boolean',
+        'video_duration' => 'integer',
+        'video_size' => 'integer'
     ];
 
     protected $appends = [
@@ -46,88 +52,62 @@ class Post extends Model
         'media_type',
         'image_url',
         'video_url',
-        'link_url',
-        'link_domain',
+        'video_thumb_url',
         'category_label'
     ];
 
     // ============================================
-    // CATEGORIES - Netflix Style
+    // CATEGORIES
     // ============================================
     public static function getCategories()
     {
         return [
-            // Action & Adventure
             'action' => '🎬 Action & Adventure',
             'action_comedy' => '🎬 Action Comedy',
             'action_thriller' => '🎬 Action Thriller',
             'martial_arts' => '🥋 Martial Arts',
             'spy' => '🕵️ Spy',
-
-            // Comedy
             'comedy' => '😂 Comedy',
             'romantic_comedy' => '❤️ Romantic Comedy',
             'dark_comedy' => '🖤 Dark Comedy',
             'standup' => '🎤 Stand-up Comedy',
             'satire' => '🎭 Satire',
-
-            // Drama
             'drama' => '😢 Drama',
             'period_drama' => '📜 Period Drama',
             'crime_drama' => '🔫 Crime Drama',
             'teen_drama' => '🧑‍🎓 Teen Drama',
             'melodrama' => '🎭 Melodrama',
-
-            // Romance
             'romance' => '❤️ Romance',
             'romantic_drama' => '💔 Romantic Drama',
-
-            // Horror & Thriller
             'horror' => '😱 Horror',
             'thriller' => '🔪 Thriller',
             'psychological' => '🧠 Psychological',
-
-            // Sci-Fi & Fantasy
             'sci_fi' => '🔬 Sci-Fi',
             'fantasy' => '🐉 Fantasy',
             'superhero' => '🦸 Superhero',
             'space' => '🚀 Space',
-
-            // Documentary
             'documentary' => '📖 Documentary',
             'biography' => '📝 Biography',
             'history' => '🏛️ History',
             'nature' => '🌿 Nature',
-
-            // Music
             'music' => '🎵 Music',
             'concert' => '🎸 Concert',
             'musical' => '🎭 Musical',
-
-            // Sports
             'sports' => '⚽ Sports',
             'fitness' => '💪 Fitness',
-
-            // Kids & Family
             'kids' => '🧒 Kids',
             'family' => '👨‍👩‍👧 Family',
             'animation' => '🎨 Animation',
             'anime' => '🎌 Anime',
-
-            // TV Shows
             'crime' => '📺 Crime',
             'reality' => '📺 Reality TV',
             'talk_show' => '🎙️ Talk Show',
-
-            // Lifestyle
             'cooking' => '🍳 Cooking',
             'travel' => '✈️ Travel',
             'fashion' => '👗 Fashion',
             'education' => '📚 Education',
             'technology' => '💻 Technology',
             'gaming' => '🎮 Gaming',
-
-            // Other
             'other' => '📌 Other',
         ];
     }
@@ -138,33 +118,129 @@ class Post extends Model
         return $categories[$this->category] ?? '📌 Other';
     }
 
-    public function getCategoryEmojiAttribute()
+    // ============================================
+    // BUNNY METHODS
+    // ============================================
+    
+    private function getBunnyStorage()
     {
-        $label = $this->category_label;
-        return substr($label, 0, 2);
+        return app(BunnyStorageService::class);
+    }
+
+    public function uploadVideoToBunny($file)
+    {
+        $timestamp = now()->timestamp;
+        $extension = $file->getClientOriginalExtension();
+        $fileName = "{$timestamp}_{$this->id}.{$extension}";
+        $path = "videos/{$fileName}";
+
+        $bunny = $this->getBunnyStorage();
+        $result = $bunny->upload($file->getContent(), $path);
+
+        if ($result['success']) {
+            $this->update([
+                'video_original' => $file->getClientOriginalName(),
+                'video_path' => $path,
+                'video_cdn_url' => $result['cdn_url'],
+                'video_size' => $file->getSize(),
+                'video_status' => 'completed'
+            ]);
+        }
+
+        return $result;
+    }
+
+    public function deleteVideoFromBunny()
+    {
+        if (!$this->video_path) {
+            return false;
+        }
+
+        $bunny = $this->getBunnyStorage();
+        $result = $bunny->delete($this->video_path);
+
+        if ($result['success']) {
+            $this->update([
+                'video_original' => null,
+                'video_path' => null,
+                'video_cdn_url' => null,
+                'video_size' => null,
+                'video_status' => null
+            ]);
+        }
+
+        return $result;
     }
 
     // ============================================
-    // RELATIONSHIPS
+    // ACCESSORS
     // ============================================
-    public function user()
+    
+    public function getVideoUrlAttribute()
     {
-        return $this->belongsTo(User::class);
+        return $this->video_cdn_url;
     }
 
-    public function comments()
+    public function getVideoThumbUrlAttribute()
     {
-        return $this->hasMany(Comment::class)->latest();
+        return $this->video_thumbnail_url;
     }
 
-    public function reactions()
+    public function getImageUrlAttribute()
     {
-        return $this->hasMany(Reaction::class);
+        return $this->image ? Storage::url($this->image) : null;
+    }
+
+    public function getHasMediaAttribute()
+    {
+        return !is_null($this->image) || 
+               !is_null($this->video_path);
+    }
+
+    public function getMediaTypeAttribute()
+    {
+        if ($this->image) {
+            return 'image';
+        } elseif ($this->video_path) {
+            return 'video';
+        }
+        return null;
+    }
+
+    // ============================================
+    // REACTION METHODS
+    // ============================================
+    
+    public function isLikedBy($userId)
+    {
+        return $this->reactions()
+            ->where('user_id', $userId)
+            ->exists();
+    }
+
+    public function getReactionSummaryAttribute()
+    {
+        return $this->reactions()
+            ->select('type', DB::raw('count(*) as total'))
+            ->groupBy('type')
+            ->pluck('total', 'type')
+            ->toArray();
+    }
+
+    public function getTopReactionsAttribute()
+    {
+        return $this->reactions()
+            ->select('type', DB::raw('count(*) as count'))
+            ->groupBy('type')
+            ->orderBy('count', 'desc')
+            ->limit(3)
+            ->get();
     }
 
     // ============================================
     // SCOPES
     // ============================================
+    
     public function scopePublic($query)
     {
         return $query->where('privacy', 'public');
@@ -174,8 +250,7 @@ class Post extends Model
     {
         return $query->where(function($q) {
             $q->whereNotNull('image')
-              ->orWhereNotNull('video')
-              ->orWhereNotNull('link');
+              ->orWhereNotNull('video_path');
         });
     }
 
@@ -194,91 +269,34 @@ class Post extends Model
         return $query->where('category', $category);
     }
 
-    public function scopeSafeForGuests($query)
+    public function scopeMature($query, $isMature = true)
     {
-        return $query->where('is_mature', false);
-    }
-
-    public function scopeSafeForUser($query, $userId)
-    {
-        return $query->where(function($q) use ($userId) {
-            $q->where('is_mature', false)
-              ->orWhere('user_id', $userId);
-        });
+        return $query->where('is_mature', $isMature);
     }
 
     // ============================================
-    // ATTRIBUTES
+    // RELATIONSHIPS
     // ============================================
-    public function getHasMediaAttribute()
+    
+    public function user()
     {
-        return !is_null($this->image) || !is_null($this->video) || !is_null($this->link);
+        return $this->belongsTo(User::class);
     }
 
-    public function getMediaTypeAttribute()
+    public function comments()
     {
-        if ($this->image) {
-            return 'image';
-        } elseif ($this->video) {
-            return 'video';
-        } elseif ($this->link) {
-            return 'link';
-        }
-        return null;
+        return $this->hasMany(Comment::class)->latest();
     }
 
-    public function getImageUrlAttribute()
+    public function reactions()
     {
-        return $this->image ? Storage::url($this->image) : null;
-    }
-
-    public function getVideoUrlAttribute()
-    {
-        return $this->video ? Storage::url($this->video) : null;
-    }
-
-    public function getLinkUrlAttribute()
-    {
-        return $this->link ?? null;
-    }
-
-    public function getLinkDomainAttribute()
-    {
-        if (!$this->link) return null;
-        
-        $domain = parse_url($this->link, PHP_URL_HOST);
-        return str_replace('www.', '', $domain);
-    }
-
-    public function getReactionSummaryAttribute()
-    {
-        return $this->reactions()
-            ->select('type', \DB::raw('count(*) as total'))
-            ->groupBy('type')
-            ->pluck('total', 'type')
-            ->toArray();
-    }
-
-    public function isLikedBy($userId)
-    {
-        return $this->reactions()
-            ->where('user_id', $userId)
-            ->exists();
-    }
-
-    public function getTopReactionsAttribute()
-    {
-        return $this->reactions()
-            ->select('type', \DB::raw('count(*) as count'))
-            ->groupBy('type')
-            ->orderBy('count', 'desc')
-            ->limit(3)
-            ->get();
+        return $this->hasMany(Reaction::class);
     }
 
     // ============================================
     // BOOT
     // ============================================
+    
     protected static function boot()
     {
         parent::boot();
@@ -287,25 +305,8 @@ class Post extends Model
             $post->comments()->delete();
             $post->reactions()->delete();
             
-            // Delete all media files
-            if ($post->image) {
-                Storage::disk('public')->delete($post->image);
-            }
-            if ($post->video) {
-                Storage::disk('public')->delete($post->video);
-            }
-            if ($post->video_thumbnail) {
-                Storage::disk('public')->delete($post->video_thumbnail);
-            }
-            if ($post->video_720) {
-                Storage::disk('public')->delete($post->video_720);
-            }
-            if ($post->video_480) {
-                Storage::disk('public')->delete($post->video_480);
-            }
-            if ($post->video_360) {
-                Storage::disk('public')->delete($post->video_360);
-            }
+            // Delete from Bunny
+            $post->deleteVideoFromBunny();
         });
     }
 }

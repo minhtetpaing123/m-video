@@ -12,24 +12,18 @@
             <div class="lg:col-span-2">
                 
                 {{-- ============================================ --}}
-                {{-- VIDEO PLAYER / LINK PLAYER --}}
+                {{-- VIDEO PLAYER - Bunny CDN --}}
                 {{-- ============================================ --}}
-                @if($post->video)
-                    {{-- Video Player --}}
+                @if($post->video_cdn_url)
                     <div class="block w-full overflow-hidden clear-both">
                         <x-common.video-player 
-                            :src="$post->video" 
-                            :src_1080="$post->video_1080 ?? null"
-                            :src_720="$post->video_720 ?? null"
-                            :src_480="$post->video_480 ?? null"
-                            :src_360="$post->video_360 ?? null"
-                            :src_240="$post->video_240 ?? null"
-                            :src_144="$post->video_144 ?? null"
-                            :poster="$post->video_thumbnail ? Storage::url($post->video_thumbnail) : ''"
+                            :src="$post->video_cdn_url"
+                            :poster="$post->video_thumbnail_url"
                             :autoplay="false"
                             :title="$post->title ?? $post->content ?? 'Untitled'"
                             :views="number_format($post->views_count ?? 0)"
                             :time="$post->created_at->diffForHumans()"
+                            :allow_download="false"
                         />
                     </div>
                     
@@ -59,26 +53,25 @@
                     
                 @elseif($post->link)
                     {{-- ============================================ --}}
-                    {{-- VIMEO / YOUTUBE / OTHER LINK PLAYER --}}
+                    {{-- LINK PLAYER (YouTube, Vimeo, TikTok, Instagram) --}}
                     {{-- ============================================ --}}
                     @php
                         $embedUrl = null;
                         $linkDomain = parse_url($post->link, PHP_URL_HOST);
                         $linkDomain = str_replace('www.', '', $linkDomain);
                         
-                        // Vimeo ကို အရင်ဆုံး စစ်ပါ
-                        if (str_contains($linkDomain, 'vimeo.com') || str_contains($linkDomain, 'player.vimeo.com')) {
-                            $cleanUrl = strtok($post->link, '?');
-                            preg_match('/(?:vimeo\.com\/(?:video\/|embed\/|)|player\.vimeo\.com\/video\/)(\d+)/', $cleanUrl, $match);
-                            if (isset($match[1])) {
-                                $embedUrl = 'https://player.vimeo.com/video/' . $match[1] . '?autoplay=0&byline=0&portrait=0&title=0&badge=0';
-                            }
-                        }
                         // YouTube
-                        elseif (str_contains($linkDomain, 'youtube.com') || str_contains($linkDomain, 'youtu.be')) {
+                        if (str_contains($linkDomain, 'youtube.com') || str_contains($linkDomain, 'youtu.be')) {
                             preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/', $post->link, $match);
                             if (isset($match[1])) {
                                 $embedUrl = 'https://www.youtube.com/embed/' . $match[1] . '?autoplay=0&rel=0&modestbranding=1&showinfo=0&controls=1&color=white&iv_load_policy=3';
+                            }
+                        }
+                        // Vimeo
+                        elseif (str_contains($linkDomain, 'vimeo.com')) {
+                            preg_match('/(?:vimeo\.com\/(?:video\/|embed\/|)|player\.vimeo\.com\/video\/)(\d+)/', $post->link, $match);
+                            if (isset($match[1])) {
+                                $embedUrl = 'https://player.vimeo.com/video/' . $match[1] . '?autoplay=0&byline=0&portrait=0&title=0&badge=0';
                             }
                         }
                         // TikTok
@@ -98,48 +91,17 @@
                     @endphp
                     
                     @if($embedUrl)
-                        {{-- ============================================ --}}
-                        {{-- VIMEO PLAYER - အရွယ်အစားပြည့် (အာမခံချက်အရှိဆုံး) --}}
-                        {{-- ============================================ --}}
-                        @if(str_contains($embedUrl, 'vimeo.com'))
-                            <div class="vimeo-player-wrapper" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000; border-radius: 12px;">
-                                <iframe 
-                                    src="{{ $embedUrl }}"
-                                    frameborder="0"
-                                    allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
-                                    referrerpolicy="strict-origin-when-cross-origin"
-                                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"
-                                    title="Vimeo Video">
-                                </iframe>
-                            </div>
-                            <script src="https://player.vimeo.com/api/player.js"></script>
-                            
-                        {{-- ============================================ --}}
-                        {{-- YOUTUBE PLAYER - အရွယ်အစားပြည့် --}}
-                        {{-- ============================================ --}}
-                        @else
-                            <div class="relative bg-black rounded-xl overflow-hidden shadow-2xl" style="padding-bottom: 56.25%; height: 0; width: 100%;">
-                                <iframe 
-                                    src="{{ $embedUrl }}"
-                                    frameborder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowfullscreen
-                                    class="absolute top-0 left-0 w-full h-full"
-                                    loading="lazy"
-                                    style="border: none;"
-                                    sandbox="allow-scripts allow-same-origin allow-presentation">
-                                </iframe>
-                            </div>
-                        @endif
-                        
-                        {{-- M-Video Watermark --}}
-                        <div style="position: absolute; bottom: 80px; right: 20px; z-index: 10; pointer-events: none; opacity: 0.2;">
-                            <span style="color: white; font-size: 11px; font-weight: bold; letter-spacing: 2px; background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 4px; backdrop-filter: blur(4px);">
-                                M-VIDEO
-                            </span>
+                        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000; border-radius: 12px;">
+                            <iframe 
+                                src="{{ $embedUrl }}"
+                                frameborder="0"
+                                allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
+                                referrerpolicy="strict-origin-when-cross-origin"
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"
+                                title="Video Player">
+                            </iframe>
                         </div>
                     @else
-                        {{-- Fallback: Video Not Available --}}
                         <div class="bg-gray-900 rounded-xl overflow-hidden shadow-2xl border border-gray-800 p-8 text-center">
                             <p class="text-gray-400">Video not available or unsupported link.</p>
                         </div>
@@ -171,19 +133,50 @@
                     </div>
                     
                     <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        {{-- Views --}}
                         <div class="flex items-center gap-2 text-gray-400 text-sm">
-                            <span>{{ number_format($post->views_count ?? 0) }} views</span>
+                            <span>👁️ {{ number_format($post->views_count ?? 0) }} views</span>
+                        </div>
+                        
+                        {{-- ⏱️ Video Duration --}}
+                        @if($post->video_duration)
+                            <div class="flex items-center gap-2 text-gray-400 text-sm">
+                                <span>⏱️</span>
+                                <span>
+                                    @php
+                                        $hours = floor($post->video_duration / 3600);
+                                        $minutes = floor(($post->video_duration % 3600) / 60);
+                                        $seconds = $post->video_duration % 60;
+                                    @endphp
+                                    @if($hours > 0)
+                                        {{ sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds) }}
+                                    @else
+                                        {{ sprintf('%02d:%02d', $minutes, $seconds) }}
+                                    @endif
+                                </span>
+                            </div>
+                        @endif
+                        
+                        {{-- 💾 File Size (MB) --}}
+                        @if($post->video_size)
+                            <div class="flex items-center gap-2 text-gray-400 text-sm">
+                                <span>💾</span>
+                                <span>{{ number_format($post->video_size / 1048576, 2) }} MB</span>
+                            </div>
+                        @endif
+                        
+                        {{-- Date --}}
+                        <div class="flex items-center gap-2 text-gray-400 text-sm">
                             <span>•</span>
                             <span>{{ $post->created_at->diffForHumans() }}</span>
                         </div>
                         
+                        {{-- Category --}}
                         @if($post->category)
                             <span style="background: rgba(45, 136, 255, 0.2); color: #2d88ff; font-size: 12px; font-weight: 600; padding: 4px 14px; border-radius: 20px; border: 1px solid rgba(45, 136, 255, 0.3);">
                                 {{ $post->category_label }}
                             </span>
                         @endif
-                        
-                        {{-- "External" Badge ကိုဖယ်လိုက်တယ် --}}
                     </div>
                 </div>
                 
@@ -343,7 +336,7 @@
                     $recommended = App\Models\Post::where('id', '!=', $post->id)
                         ->where('privacy', 'public')
                         ->where(function($q) {
-                            $q->whereNotNull('video')
+                            $q->whereNotNull('video_cdn_url')
                               ->orWhereNotNull('link')
                               ->orWhereNotNull('image');
                         })
@@ -357,7 +350,11 @@
                         <a href="{{ route('posts.show', $recommend->id) }}" class="flex gap-3 group">
                             <div class="w-40 flex-shrink-0">
                                 <div class="relative aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                                    @if($recommend->video_thumbnail)
+                                    @if($recommend->video_thumbnail_url)
+                                        <img src="{{ $recommend->video_thumbnail_url }}" 
+                                             alt="{{ $recommend->title ?? 'Video' }}" 
+                                             class="w-full h-full object-cover">
+                                    @elseif($recommend->video_thumbnail)
                                         <img src="{{ Storage::url($recommend->video_thumbnail) }}" 
                                              alt="{{ $recommend->title ?? 'Video' }}" 
                                              class="w-full h-full object-cover">
@@ -387,9 +384,6 @@
     </div>
 </div>
 
-{{-- ============================================ --}}
-{{-- JAVASCRIPT --}}
-{{-- ============================================ --}}
 <script>
 function shareVideo() {
     const url = window.location.href;
@@ -423,7 +417,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch('/api/posts/' + postId + '/save', {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
                     'Content-Type': 'application/json'
                 }
             })
