@@ -54,7 +54,8 @@
         <span class="mv-nav-label">Notifications</span>
     </a>
     
-    <a href="/profile" class="mv-nav-item {{ $active === 'profile' ? 'active' : '' }}">
+    {{-- Profile Link - Fixed with auth()->user() --}}
+    <a href="{{ route('profile.show', auth()->user()) }}" class="mv-nav-item {{ $active === 'profile' ? 'active' : '' }}">
         <div class="mv-nav-icon">
             <svg viewBox="0 0 28 28" height="24" width="24" fill="currentColor">
                 <path d="M14 2.042c6.76 0 12 4.952 12 11.64S20.76 25.322 14 25.322a13.091 13.091 0 0 1-3.474-.461.959.959 0 0 0-.641.047L7.5 25.959a.961.961 0 0 1-1.348-.849l-.065-2.134a.957.957 0 0 0-.322-.684A11.389 11.389 0 0 1 2 13.682C2 6.994 7.24 2.042 14 2.042zm0 2.5c-2.83 0-5.1 1.83-5.1 4.058 0 1.5.83 2.833 2.1 3.668v2.774c0 .69.56 1.25 1.25 1.25h3.5c.69 0 1.25-.56 1.25-1.25v-2.774c1.27-.835 2.1-2.168 2.1-3.668 0-2.228-2.27-4.058-5.1-4.058z"/>

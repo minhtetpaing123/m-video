@@ -5,12 +5,13 @@ namespace App\Models;
 use App\Services\BunnyStorageService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes; // ✅ SoftDeletes trait အား import လုပ်ခြင်း
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 
 class Post extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes; // ✅ SoftDeletes trait ကို အသုံးပြုခြင်း
 
     protected $fillable = [
         'user_id',
@@ -32,7 +33,7 @@ class Post extends Model
         'likes_count',
         'comments_count',
         'shares_count',
-        'views_count',          // ✅ ထည့်ပါ
+        'views_count',
         'notification_enabled'
     ];
 
@@ -42,7 +43,7 @@ class Post extends Model
         'likes_count' => 'integer',
         'comments_count' => 'integer',
         'shares_count' => 'integer',
-        'views_count' => 'integer',     // ✅ ထည့်ပါ
+        'views_count' => 'integer',
         'notification_enabled' => 'boolean',
         'is_mature' => 'boolean',
         'video_duration' => 'integer',
@@ -188,9 +189,19 @@ class Post extends Model
         return $this->video_thumbnail_url;
     }
 
+    /**
+     * Get the image URL from Bunny CDN
+     * ✅ Fixed for Bunny Storage
+     */
     public function getImageUrlAttribute()
     {
-        return $this->image ? Storage::url($this->image) : null;
+        if (!$this->image) {
+            return null;
+        }
+        
+        // ✅ Bunny CDN URL ကိုသုံးမယ်
+        $cdnUrl = config('bunny.cdn_url');
+        return $cdnUrl . '/' . ltrim($this->image, '/');
     }
 
     public function getHasMediaAttribute()
@@ -239,6 +250,19 @@ class Post extends Model
             ->get();
     }
 
+    public function getUserReactionAttribute()
+    {
+        if (!auth()->check()) {
+            return null;
+        }
+        
+        $reaction = $this->reactions()
+            ->where('user_id', auth()->id())
+            ->first();
+            
+        return $reaction ? $reaction->type : null;
+    }
+
     // ============================================
     // SCOPES
     // ============================================
@@ -276,6 +300,39 @@ class Post extends Model
         return $query->where('is_mature', $isMature);
     }
 
+    /**
+     * ✅ Privacy Scope - User မြင်နိုင်တဲ့ Posts ကိုပဲ ပြန်ပေးမယ်
+     * ✅ friends() relationship ကို မှန်ကန်အောင်ပြင်ထားတယ်
+     */
+    public function scopeVisibleTo($query, $user = null)
+    {
+        $user = $user ?: auth()->user();
+        $userId = $user ? $user->id : null;
+
+        return $query->where(function ($query) use ($userId) {
+            // Public Posts - အားလုံးမြင်ရမယ်
+            $query->where('privacy', 'public')
+                // Friends Posts - သူငယ်ချင်းတွေပဲမြင်ရမယ်
+                ->orWhere(function ($q) use ($userId) {
+                    $q->where('privacy', 'friends')
+                      ->whereHas('user', function ($uq) use ($userId) {
+                          $uq->where(function ($query) use ($userId) {
+                              $query->whereHas('friends', function ($fq) use ($userId) {
+                                  $fq->where('friend_id', $userId);
+                              })->orWhereHas('friendsOf', function ($fq) use ($userId) {
+                                  $fq->where('user_id', $userId);
+                              });
+                          });
+                      });
+                })
+                // Private Posts - ပိုင်ရှင်ပဲမြင်ရမယ်
+                ->orWhere(function ($q) use ($userId) {
+                    $q->where('privacy', 'private')
+                      ->where('user_id', $userId);
+                });
+        });
+    }
+
     // ============================================
     // RELATIONSHIPS
     // ============================================
@@ -304,11 +361,16 @@ class Post extends Model
         parent::boot();
 
         static::deleting(function($post) {
-            $post->comments()->delete();
-            $post->reactions()->delete();
-            
-            // Delete from Bunny
-            $post->deleteVideoFromBunny();
+            // ✅ Force Delete (အပြီးအပိုင်ဖျက်တာ) ဖြစ်မှသာ Bunny ပေါ်ကဗီဒီယိုကို ဖျက်မည်
+            if ($post->isForceDeleting()) {
+                $post->comments()->forceDelete(); 
+                $post->reactions()->delete();
+                $post->deleteVideoFromBunny();
+            } else {
+                // ✅ ရိုးရိုး Soft Delete ဆိုလျှင် ယာယီသာ ဖျက်ထားမည်
+                $post->comments()->delete();
+                $post->reactions()->delete();
+            }
         });
     }
 }

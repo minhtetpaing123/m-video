@@ -15,41 +15,108 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Http\Request; // ✅ ထည့်
 
 // ============================================
-// PUBLIC ROUTES
+// ✅ LIVEWIRE (Namespace နှင့် Class Name အမှန်များ)
 // ============================================
-Route::get('/video/download/{post}', [App\Http\Controllers\VideoController::class, 'downloadPage'])->name('video.download.page');
+use App\Livewire\Post\CreatePost;
+use App\Livewire\Post\Feed as VideoShow;
+use App\Livewire\Dashboard\Index as DashboardIndex;
+use App\Livewire\Profile\Show as ProfileShow;
+use App\Livewire\Profile\Settings as ProfileSettings;
+use App\Livewire\Post\Edit as PostEdit;
+use App\Livewire\Home\Home as LivewireHome;
+use App\Livewire\Post\Download as PostDownload;
+use App\Livewire\Post\Description as PostDescription;
+use App\Livewire\Search\Search as SearchLivewire;
+use App\Livewire\Category\Filter as CategoryFilter;
+use App\Livewire\Category\EighteenPlus as EighteenPlusLivewire;
+use App\Livewire\Auth\Login as LoginLivewire;
+use App\Livewire\Settings\Setting as SettingsLivewire; // ✅ အသစ်ထည့်
+
+// ============================================
+// ✅ PUBLIC ROUTES (အပေါ်ဆုံးမှာ)
+// ============================================
+Route::get('/', LivewireHome::class)->name('home');
+
+// ✅ LOGIN - Livewire Route
+Route::get('/login', LoginLivewire::class)->name('login');
+
+// ✅ SEARCH - Livewire Route
+Route::get('/search', SearchLivewire::class)->name('search');
+
+// ✅ VIDEO DOWNLOAD - Livewire Route
+Route::get('/video/download/{post}', PostDownload::class)->name('video.download.page');
+
+// ✅ VIDEO DOWNLOAD FILE - Controller Route (ဒီဟာက file download လုပ်ဖို့ပါ)
 Route::get('/video/download/{post}/file', [App\Http\Controllers\VideoController::class, 'downloadFile'])->name('video.download.file');
-Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/posts/{post}/info', [App\Http\Controllers\DescriptionController::class, 'show'])->name('posts.description');
-Route::get('/category/{category}', [HomeController::class, 'index'])->name('category.filter');
-Route::get('/18plus', [HomeController::class, 'index'])->name('category.18plus');
+
+// ✅ POST DESCRIPTION - Livewire Route
+Route::get('/post/{post}/info', PostDescription::class)->name('posts.description');
+
+// ✅ CATEGORY FILTER - Livewire Route
+Route::get('/category/{category}', CategoryFilter::class)->name('category.filter');
+
+// ✅ 18+ - Livewire Route
+Route::get('/18plus', EighteenPlusLivewire::class)->name('category.18plus');
+
+// ✅ SETTINGS - Livewire Route
+Route::get('/settings', SettingsLivewire::class)->name('settings');
+
+// ✅ THEME UPDATE - AJAX Route (အသစ်ထည့်)
+Route::post('/settings/theme', function (Request $request) {
+    $theme = $request->input('theme');
+    session()->put('theme', $theme);
+    return response()->json(['success' => true]);
+})->name('settings.theme');
 
 // Video Streaming - Redirect to Bunny CDN
 Route::get('/video/{path}', [VideoController::class, 'stream'])
     ->where('path', '.*')
     ->name('video.stream');
 
-Route::get('/posts/{post}', [PostController::class, 'show'])->name('posts.show');
+// ============================================
+// ✅ PUBLIC LIVEWIRE ROUTES
+// ============================================
+Route::get('/posts/{post}', VideoShow::class)->name('posts.show');
+Route::get('/profile/{user}', ProfileShow::class)->name('profile.show');
 
 // ============================================
-// AUTHENTICATED ROUTES (Web - CSRF Required)
+// ✅ LIVEWIRE AUTH ROUTES
 // ============================================
-
 Route::middleware(['auth', 'verified'])->group(function () {
     
-    Route::get('/dashboard', [PostController::class, 'index'])->name('dashboard');
+    // ============================================
+    // ✅ PROFILE SETTINGS (Livewire)
+    // ============================================
+    Route::get('/profile/settings', ProfileSettings::class)->name('profile.settings');
+    
+    // ============================================
+    // ✅ DASHBOARD & CREATE & EDIT
+    // ============================================
+    Route::get('/dashboard', DashboardIndex::class)->name('dashboard');
+    
+    // ✅ Livewire Create Post Route
+    Route::get('/post/create', CreatePost::class)->name('post.create.post');
+
+    Route::get('/posts/{post}/edit', PostEdit::class)->name('posts.edit');
+    
+    // ============================================
+    // ✅ USER POSTS
+    // ============================================
     Route::get('/user/{user}/posts', [PostController::class, 'userPosts'])->name('user.posts');
     
     // ============================================
-    // POST ROUTES - MediaUploadController (Web - CSRF Protected)
+    // ✅ POST ROUTES (CRUD)
     // ============================================
-    Route::post('/post/store', [MediaUploadController::class, 'store'])->name('posts.store');
+    // ❌ POST Store Route ကိုဖယ်လိုက်ပါ (Livewire ကိုသုံးတော့မယ်)
+    // Route::post('/post/store', [MediaUploadController::class, 'store'])->name('posts.store');
+    
     Route::put('/posts/{post}', [PostCrudController::class, 'update'])->name('posts.update');
     Route::delete('/posts/{post}', [PostCrudController::class, 'destroy'])->name('posts.destroy');
     
-    // Media Upload Routes (Web)
+    // Media Upload Routes (AJAX Preview အတွက်)
     Route::post('/media/upload/image', [MediaUploadController::class, 'uploadImage'])->name('media.upload.image');
     Route::post('/media/upload/video', [MediaUploadController::class, 'uploadVideo'])->name('media.upload.video');
     Route::post('/media/upload/url', [MediaUploadController::class, 'processUrl'])->name('media.upload.url');
@@ -78,22 +145,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
-    
-    // Profile Routes
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 // ============================================
-// API ROUTES (No CSRF Required - For curl/Postman)
+// API ROUTES
 // ============================================
-
 Route::prefix('api')->group(function () {
     
-    // ============================================
-    // PUBLIC API ROUTES (No auth required)
-    // ============================================
     Route::get('/videos', [VideoController::class, 'index']);
     Route::get('/videos/{id}', [VideoController::class, 'show']);
     Route::get('/categories', function () {
@@ -102,24 +160,18 @@ Route::prefix('api')->group(function () {
         ]);
     });
     
-    // ============================================
-    // AUTHENTICATED API ROUTES (CSRF Exempt)
-    // ============================================
     Route::middleware(['auth'])->group(function () {
-        
-        // Video Upload API (NO CSRF)
-        Route::post('/post/store', [MediaUploadController::class, 'store']);
+        // ❌ API Post Store Route ကိုလည်းဖယ်ပါ
+        // Route::post('/post/store', [MediaUploadController::class, 'store']);
         Route::post('/post/upload-image', [MediaUploadController::class, 'uploadImage']);
         Route::post('/post/upload-video', [MediaUploadController::class, 'uploadVideo']);
         Route::post('/post/process-url', [MediaUploadController::class, 'processUrl']);
         Route::delete('/post/delete-file', [MediaUploadController::class, 'deleteFile']);
         
-        // Post Interactions
         Route::post('/posts/{post}/like', [ReactionController::class, 'store']);
         Route::get('/posts/{post}/reactions', [ReactionController::class, 'index']);
         Route::get('/posts/{post}/comments', [CommentController::class, 'index']);
         
-        // Video CRUD
         Route::delete('/videos/{id}', [VideoController::class, 'destroy']);
         Route::get('/videos/bunny-files', [VideoController::class, 'listBunnyFiles']);
     });
@@ -128,5 +180,4 @@ Route::prefix('api')->group(function () {
 // ============================================
 // AUTH ROUTES
 // ============================================
-
 require __DIR__.'/auth.php';

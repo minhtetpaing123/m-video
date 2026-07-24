@@ -12,6 +12,9 @@ class BunnyStorageService
     protected $baseUrl;
     protected $cdnUrl;
 
+    // ⏰ 30 မိနစ် Timeout (1800 စက္ကန့်)
+    protected $timeout = 1800;
+
     public function __construct()
     {
         $this->apiKey = config('bunny.api_key');
@@ -31,6 +34,8 @@ class BunnyStorageService
             'AccessKey' => $this->apiKey,
             'Content-Type' => $contentType ?? 'application/octet-stream'
         ])->withBody($fileContent, $contentType ?? 'application/octet-stream')
+          ->timeout($this->timeout)  // ⏰ 30 မိနစ် Timeout
+          ->retry(3, 1000)  // အလုပ်မဖြစ်ရင် 3 ကြိမ်ပြန်စမ်းမယ်
           ->put($url);
 
         if ($response->successful()) {
@@ -63,7 +68,8 @@ class BunnyStorageService
         
         $response = Http::withHeaders([
             'AccessKey' => $this->apiKey
-        ])->get($url);
+        ])->timeout(30)  // ⏰ 30 စက္ကန့်
+          ->get($url);
 
         if ($response->successful()) {
             $files = $response->json();
@@ -90,7 +96,8 @@ class BunnyStorageService
         
         $response = Http::withHeaders([
             'AccessKey' => $this->apiKey
-        ])->head($url);
+        ])->timeout(30)  // ⏰ 30 စက္ကန့်
+          ->head($url);
 
         if ($response->successful()) {
             return [
@@ -115,7 +122,8 @@ class BunnyStorageService
         
         $response = Http::withHeaders([
             'AccessKey' => $this->apiKey
-        ])->delete($url);
+        ])->timeout(30)  // ⏰ 30 စက္ကန့်
+          ->delete($url);
 
         if ($response->successful()) {
             return [
@@ -143,7 +151,8 @@ class BunnyStorageService
         
         $response = Http::withHeaders([
             'AccessKey' => $this->apiKey
-        ])->get($url);
+        ])->timeout($this->timeout)  // ⏰ 30 မိနစ် Timeout
+          ->get($url);
 
         if ($response->successful()) {
             return [

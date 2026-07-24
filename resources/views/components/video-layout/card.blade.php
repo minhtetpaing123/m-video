@@ -114,7 +114,7 @@
                 </div>
                 
             @elseif($isImage)
-                <img src="{{ Storage::url($post->image) }}" alt="{{ $title }}" 
+                <img src="{{ $post->image_url }}" alt="{{ $title }}" 
                      class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
             @endif
             
@@ -131,13 +131,13 @@
                 
                 @if($post->is_mature)
                     <span class="text-[9px] sm:text-[11px] font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-red-600 text-white shadow-lg shadow-red-600/30">
-                        🔞 18+
+                        🔞 {{ __('18+') }}
                     </span>
                 @endif
                 
                 @if($isLink)
                     <span class="text-[9px] sm:text-[11px] font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-green-600 text-white shadow-lg shadow-green-600/30">
-                        🔗 Link
+                        🔗 {{ __('Link') }}
                     </span>
                 @endif
             </div>
@@ -185,7 +185,7 @@
                         {{-- Views Badge --}}
                         <span class="inline-flex items-center gap-1 text-xs sm:text-sm font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20 transition-all duration-300 group-hover:bg-blue-500/20">
                             <span class="text-[10px]">👁️</span>
-                            {{ number_format($post->views_count ?? 0) }}
+                            {{ number_format($post->views_count ?? 0) }} {{ __('views') }}
                         </span>
                         
                         <span class="text-xs text-gray-400 dark:text-gray-500">•</span>

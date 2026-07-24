@@ -6,6 +6,15 @@
     $categories = App\Models\Post::getCategories();
 @endphp
 
+{{-- ============================================ --}}
+{{-- PROGRESS BAR COMPONENT --}}
+{{-- ============================================ --}}
+<x-processbar.progress-bar 
+    id="uploadProgress" 
+    title="Uploading your post..." 
+    style="facebook" 
+/>
+
 <div id="{{ $id }}" 
      style="display: {{ $displayStyle }}; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; animation: fadeIn 0.2s ease;">
     
@@ -95,9 +104,7 @@
                     </div>
                 </div>
                 
-                {{-- ============================================ --}}
-                {{-- CATEGORY - ထားမယ် --}}
-                {{-- ============================================ --}}
+                {{-- CATEGORY --}}
                 <div style="margin: 10px 0 12px 0;">
                     <select name="category" 
                             required
@@ -124,7 +131,7 @@
                 </div>
                 
                 {{-- ============================================ --}}
-                {{-- MEDIA TOOLBAR - Photo နဲ့ Video ထားမယ် --}}
+                {{-- MEDIA TOOLBAR --}}
                 {{-- ============================================ --}}
                 <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #18191a; border-radius: 8px; border: 1px solid #3e4042; margin: 8px 0 12px 0; flex-wrap: wrap;">
                     
@@ -146,7 +153,7 @@
                         <input type="file" name="video" accept="video/*" style="display: none;" onchange="handleVideoSelect(this)">
                     </label>
                     
-                    {{-- Thumbnail Button --}}
+                    {{-- Thumbnail Button - Video ရွေးမှပြမယ် --}}
                     <div id="thumbnailBtnContainer" style="display: none;">
                         <label style="display: flex; align-items: center; gap: 6px; color: #f39c12; font-size: 13px; cursor: pointer; padding: 4px 10px; border-radius: 6px; transition: all 0.2s;"
                                onmouseover="this.style.background='#3e4042'"
@@ -158,7 +165,6 @@
                     </div>
                     
                     <span style="flex: 1;"></span>
-                    
                     <span id="selectedFileName" style="color: #8a8d91; font-size: 12px;"></span>
                     
                     <button type="button" onclick="clearAllMedia()" 
@@ -177,10 +183,6 @@
                         </video>
                     </div>
                 </div>
-
-                {{-- ============================================ --}}
-                {{-- LINK SECTION - အကုန်ဖယ်လိုက်ပြီ --}}
-                {{-- ============================================ --}}
                 
                 {{-- POST BUTTON --}}
                 <button type="submit" id="submitBtn" 
@@ -227,7 +229,9 @@ select[name="category"] optgroup {
 </style>
 
 <script>
-// Title Counter
+// ============================================
+// COUNTERS
+// ============================================
 document.addEventListener('DOMContentLoaded', function() {
     const titleInput = document.getElementById('titleInput');
     const titleCount = document.getElementById('titleCount');
@@ -238,7 +242,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Content Counter
 document.addEventListener('DOMContentLoaded', function() {
     const contentInput = document.getElementById('contentInput');
     const contentCount = document.getElementById('contentCount');
@@ -249,7 +252,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Description Counter
 document.addEventListener('DOMContentLoaded', function() {
     const descInput = document.getElementById('descriptionInput');
     const descCount = document.getElementById('descCount');
@@ -260,7 +262,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Image Select
+// ============================================
+// MEDIA SELECTORS
+// ============================================
 function handleImageSelect(input) {
     const file = input.files[0];
     if (!file) return;
@@ -271,7 +275,6 @@ function handleImageSelect(input) {
     document.getElementById('thumbnailBtnContainer').style.display = 'none';
 }
 
-// Video Select
 function handleVideoSelect(input) {
     const file = input.files[0];
     if (!file) return;
@@ -280,16 +283,16 @@ function handleVideoSelect(input) {
     document.getElementById('selectedFileName').textContent = '🎬 ' + file.name;
     document.getElementById('clearMediaBtn').style.display = 'inline';
     document.getElementById('thumbnailBtnContainer').style.display = 'block';
+    console.log('🎬 Video selected, thumbnail button shown');
 }
 
-// Thumbnail Select
 function handleThumbnailSelect(input) {
     const file = input.files[0];
     if (!file) return;
+    console.log('🎯 Thumbnail selected:', file.name, file.size);
     document.getElementById('selectedFileName').textContent = '🎯 Thumbnail: ' + file.name;
 }
 
-// Show Media Preview
 function showMediaPreview(file, type) {
     const container = document.getElementById('mediaPreviewContainer');
     const img = document.getElementById('imagePreview');
@@ -315,15 +318,14 @@ function showMediaPreview(file, type) {
     }
 }
 
-// Clear Functions
 function clearImageInput() {
     document.querySelector('input[name="image"]').value = '';
 }
 
 function clearVideoInput() {
     document.querySelector('input[name="video"]').value = '';
-    document.getElementById('thumbnailBtnContainer').style.display = 'none';
     document.querySelector('input[name="video_thumbnail"]').value = '';
+    document.getElementById('thumbnailBtnContainer').style.display = 'none';
 }
 
 function clearAllMedia() {
@@ -340,41 +342,157 @@ function clearAllMedia() {
     document.getElementById('thumbnailBtnContainer').style.display = 'none';
 }
 
-// Close Modal
 function closeModal(modalId) {
     document.getElementById(modalId).style.display = 'none';
     clearAllMedia();
 }
 
-// Form Submission
+// ============================================
+// AJAX FORM SUBMISSION (Progress Bar Component နဲ့)
+// ============================================
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('createPostForm');
     const submitBtn = document.getElementById('submitBtn');
+    const modalId = '{{ $id }}';
+    
+    // Get progress bar instance
+    const progress = window.progressBars ? window.progressBars['uploadProgress'] : null;
+    
+    if (!progress) {
+        console.warn('ProgressBar not initialized');
+        return;
+    }
     
     if (form) {
         form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate
             const title = document.getElementById('titleInput').value.trim();
             const content = document.getElementById('contentInput').value.trim();
             const image = document.querySelector('input[name="image"]').files[0];
             const video = document.querySelector('input[name="video"]').files[0];
+            const category = document.querySelector('select[name="category"]').value;
             
             if (!title && !content && !image && !video) {
-                e.preventDefault();
                 alert('Please write a title, content, or add a photo/video to post.');
                 return;
             }
             
+            if (!category) {
+                alert('Please select a genre/category.');
+                return;
+            }
+            
+            // Disable submit button
             submitBtn.disabled = true;
             submitBtn.textContent = 'Posting...';
             submitBtn.style.opacity = '0.7';
+            
+            // Close modal
+            document.getElementById(modalId).style.display = 'none';
+            
+            // Show progress
+            progress.show('Uploading your post...');
+            
+            // Create FormData
+            const formData = new FormData(form);
+            
+            // Calculate total size
+            let totalSize = 0;
+            if (image) totalSize += image.size;
+            if (video) totalSize += video.size;
+            const thumbnail = document.querySelector('input[name="video_thumbnail"]').files[0];
+            if (thumbnail) totalSize += thumbnail.size;
+            
+            progress.update(0, 'Starting upload...', 0, totalSize);
+            
+            // Create abort controller
+            const controller = new AbortController();
+            progress.setAbortController(controller);
+            
+            // On cancel
+            progress.onCancel(function() {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Post';
+                submitBtn.style.opacity = '1';
+                document.getElementById(modalId).style.display = 'flex';
+            });
+            
+            // Simulate progress
+            let progressInterval = setInterval(function() {
+                const currentWidth = parseFloat(document.getElementById('uploadProgressBar').style.width) || 0;
+                if (currentWidth < 90) {
+                    const newWidth = currentWidth + Math.random() * 8 + 2;
+                    progress.update(Math.min(newWidth, 90), 'Uploading...', 0, totalSize);
+                }
+            }, 400);
+            
+            // Send AJAX request
+            fetch('{{ route('posts.store') }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                signal: controller.signal
+            })
+            .then(response => {
+                clearInterval(progressInterval);
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.message || 'Upload failed');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                progress.update(100, '✅ Complete!', totalSize, totalSize);
+                
+                setTimeout(function() {
+                    progress.hide();
+                    
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Failed to create post: ' + (data.message || 'Unknown error'));
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Post';
+                        submitBtn.style.opacity = '1';
+                        document.getElementById(modalId).style.display = 'flex';
+                    }
+                }, 600);
+            })
+            .catch(error => {
+                clearInterval(progressInterval);
+                
+                if (error.name === 'AbortError') {
+                    progress.hide();
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Post';
+                    submitBtn.style.opacity = '1';
+                    document.getElementById(modalId).style.display = 'flex';
+                    return;
+                }
+                
+                console.error('Upload error:', error);
+                progress.hide();
+                alert('Upload failed: ' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Post';
+                submitBtn.style.opacity = '1';
+                document.getElementById(modalId).style.display = 'flex';
+            });
         });
     }
     
-    const modal = document.getElementById('{{ $id }}');
+    // Modal click outside to close
+    const modal = document.getElementById(modalId);
     if (modal) {
         modal.addEventListener('click', function(e) {
             if (e.target === modal) {
-                closeModal('{{ $id }}');
+                closeModal(modalId);
             }
         });
     }

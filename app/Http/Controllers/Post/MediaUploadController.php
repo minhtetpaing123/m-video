@@ -22,24 +22,14 @@ class MediaUploadController extends Controller
     }
 
     /**
-     * Store a new post with text, image, or video
+     * Store a new post with text, image, or video (AJAX)
      */
     public function store(Request $request)
     {
         try {
-            Log::info('=== 🚀 Post Store Request (Bunny) ===');
-            Log::info('Request data:', $request->all());
-            Log::info('Has video? ' . ($request->hasFile('video') ? '✅ YES' : '❌ NO'));
-            Log::info('Has image? ' . ($request->hasFile('image') ? '✅ YES' : '❌ NO'));
+            Log::info('=== 🚀 Post Store Request (AJAX) ===');
+            Log::info('📁 All files in request:', array_keys($request->allFiles()));
             
-            if ($request->hasFile('video')) {
-                Log::info('Video file info:', [
-                    'name' => $request->file('video')->getClientOriginalName(),
-                    'size' => $request->file('video')->getSize(),
-                    'mime' => $request->file('video')->getMimeType(),
-                ]);
-            }
-
             // ============================================
             // VALIDATION
             // ============================================
@@ -57,9 +47,10 @@ class MediaUploadController extends Controller
 
             if ($validator->fails()) {
                 Log::error('❌ Validation failed:', $validator->errors()->toArray());
-                return redirect()->back()
-                    ->withErrors($validator->errors())
-                    ->withInput();
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
             }
 
             // ============================================
@@ -79,7 +70,7 @@ class MediaUploadController extends Controller
             $post->video_status = 'pending';
 
             // ============================================
-            // HANDLE IMAGE UPLOAD (to Bunny)
+            // HANDLE IMAGE UPLOAD
             // ============================================
             if ($request->hasFile('image') && $request->file('image')->isValid()) {
                 $file = $request->file('image');
@@ -94,14 +85,18 @@ class MediaUploadController extends Controller
 
                 if ($result['success']) {
                     $post->image = $path;
-                    Log::info('✅ Image uploaded to Bunny:', ['path' => $path, 'cdn_url' => $result['cdn_url']]);
+                    Log::info('✅ Image uploaded to Bunny:', ['path' => $path]);
                 } else {
-                    Log::error('❌ Image upload to Bunny failed:', ['error' => $result['error']]);
+                    Log::error('❌ Image upload failed:', ['error' => $result['error']]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Image upload failed: ' . $result['error']
+                    ], 500);
                 }
             }
 
             // ============================================
-            // HANDLE VIDEO UPLOAD (to Bunny)
+            // HANDLE VIDEO UPLOAD + THUMBNAIL
             // ============================================
             if ($request->hasFile('video') && $request->file('video')->isValid()) {
                 $file = $request->file('video');
@@ -129,12 +124,18 @@ class MediaUploadController extends Controller
                     ]);
 
                     // ============================================
-                    // HANDLE VIDEO THUMBNAIL (to Bunny)
+                    // ✅ HANDLE VIDEO THUMBNAIL (User selected)
                     // ============================================
                     if ($request->hasFile('video_thumbnail') && $request->file('video_thumbnail')->isValid()) {
                         $thumbFile = $request->file('video_thumbnail');
                         $thumbFilename = time() . '_thumb_' . Str::random(10) . '.' . $thumbFile->getClientOriginalExtension();
                         $thumbPath = "thumbnails/{$thumbFilename}";
+
+                        Log::info('📸 User selected thumbnail:', [
+                            'name' => $thumbFile->getClientOriginalName(),
+                            'size' => $thumbFile->getSize(),
+                            'mime' => $thumbFile->getMimeType()
+                        ]);
 
                         $thumbResult = $this->bunny->upload(
                             $thumbFile->getContent(),
@@ -144,17 +145,27 @@ class MediaUploadController extends Controller
 
                         if ($thumbResult['success']) {
                             $post->video_thumbnail = $thumbPath;
-                            $post->video_thumbnail_url = $thumbResult['cdn_url'];
-                            Log::info('✅ Thumbnail uploaded to Bunny:', ['path' => $thumbPath]);
+                            Log::info('✅✅✅ User thumbnail uploaded to Bunny:', [
+                                'path' => $thumbPath,
+                                'cdn_url' => $thumbResult['cdn_url']
+                            ]);
+                        } else {
+                            Log::error('❌ Thumbnail upload failed:', ['error' => $thumbResult['error']]);
                         }
+                    } else {
+                        Log::info('ℹ️ No user thumbnail selected, will use auto thumbnail from ProcessVideoJob');
                     }
                 } else {
-                    Log::error('❌ Video upload to Bunny failed:', ['error' => $result['error']]);
+                    Log::error('❌ Video upload failed:', ['error' => $result['error']]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Video upload failed: ' . $result['error']
+                    ], 500);
                 }
             }
 
             // ============================================
-            // 💾 SAVE POST - ဒီမှာ သိမ်းတယ်
+            // 💾 SAVE POST TO DATABASE
             // ============================================
             $post->save();
 
@@ -162,7 +173,7 @@ class MediaUploadController extends Controller
                 'post_id' => $post->id,
                 'title' => $post->title,
                 'video_path' => $post->video_path,
-                'video_cdn_url' => $post->video_cdn_url,
+                'video_thumbnail' => $post->video_thumbnail,
                 'video_status' => $post->video_status,
                 'image_path' => $post->image,
             ]);
@@ -175,14 +186,24 @@ class MediaUploadController extends Controller
                 Log::info('📤 Video processing job dispatched for post: ' . $post->id);
             }
 
-            return redirect()->back()->with('success', 'Post created successfully!');
+            return response()->json([
+                'success' => true,
+                'message' => 'Post created successfully!',
+                'post_id' => $post->id,
+                'has_video' => !is_null($post->video_path),
+                'has_image' => !is_null($post->image),
+                'has_thumbnail' => !is_null($post->video_thumbnail),
+                'video_status' => $post->video_status,
+                'redirect_url' => route('dashboard')
+            ]);
 
         } catch (\Exception $e) {
             Log::error('❌ Error creating post: ' . $e->getMessage());
             Log::error('Trace: ' . $e->getTraceAsString());
-            return redirect()->back()
-                ->with('error', 'Failed to create post: ' . $e->getMessage())
-                ->withInput();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create post: ' . $e->getMessage()
+            ], 500);
         }
     }
 

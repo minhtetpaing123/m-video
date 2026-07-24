@@ -81,6 +81,32 @@ class User extends Authenticatable
         return $this->hasMany(Reaction::class);
     }
 
+    // ============================================
+    // ✅ FRIENDS RELATIONSHIP (ထည့်ထားတယ်)
+    // ============================================
+    
+    /**
+     * User ရဲ့ သူငယ်ချင်းတွေ (User က friend လုပ်ထားတဲ့သူတွေ)
+     */
+    public function friends()
+    {
+        return $this->belongsToMany(User::class, 'friends', 'user_id', 'friend_id')
+                    ->withPivot('status', 'created_at')
+                    ->wherePivot('status', 'accepted')
+                    ->withTimestamps();
+    }
+
+    /**
+     * User ကို friend လုပ်ထားတဲ့သူတွေ (ပြန်လည်)
+     */
+    public function friendsOf()
+    {
+        return $this->belongsToMany(User::class, 'friends', 'friend_id', 'user_id')
+                    ->withPivot('status', 'created_at')
+                    ->wherePivot('status', 'accepted')
+                    ->withTimestamps();
+    }
+
     /**
      * Notification relationships
      */

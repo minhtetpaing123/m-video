@@ -8,11 +8,31 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Display the user's public profile.
+     */
+    public function show()
+    {
+        $user = auth()->user();
+        
+        // Get user's videos if videos relationship exists
+        $videos = [];
+        try {
+            $videos = $user->videos()->latest()->paginate(12);
+        } catch (\Exception $e) {
+            $videos = [];
+        }
+        
+        return view('profile.show', compact('user', 'videos'));
+    }
+
+    /**
+     * Display the user's profile form (edit).
      */
     public function edit(Request $request): View
     {
@@ -26,13 +46,27 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $validated = $request->validated();
+
+        // Avatar Upload
+        if ($request->hasFile('avatar')) {
+            if ($user->avatar) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+            
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $user->avatar = $path;
         }
 
-        $request->user()->save();
+        $user->fill($validated);
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }

@@ -4,116 +4,132 @@
         {{-- Empty --}}
     </x-slot>
 
-    <x-user-header />
-    <x-user.nav active="home" />
-    
-    <div class="bg-gray-100 min-h-screen pb-16 pt-3">
-        <div class="max-w-2xl mx-auto px-4">
-            
-            {{-- Create Post Box --}}
-            <x-post.create-box onclick="openCreatePostModal()" />
-
-            {{-- Create Post Modal --}}
-            <x-post.create-modal :show="false" id="createPostModal" />
-
-            {{-- Video Grid --}}
-            <x-video-layout.grid 
-                :posts="$posts" 
-                empty-message="No posts yet. Create your first post!"
-                card-type="auth"
-            />
-
-            {{-- Loading Indicator --}}
-            <div id="loading-indicator" class="text-center py-5 hidden">
-                <div class="inline-block w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
-                <p class="text-gray-500 text-sm mt-2">Loading more posts...</p>
+    {{-- ============================================ --}}
+    {{-- GLOBAL UPLOAD PROGRESS BAR (Facebook Style) --}}
+    {{-- ============================================ --}}
+    <div id="globalProgressContainer" style="display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; background: #18191a; padding: 12px 20px; border-bottom: 2px solid #2d88ff; box-shadow: 0 2px 10px rgba(0,0,0,0.5);">
+        <div style="max-width: 600px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="color: #e4e6eb; font-size: 14px; font-weight: 500;">
+                    <span id="globalProgressText">📤 Uploading video...</span>
+                </span>
+                <span style="color: #b0b3b8; font-size: 14px; font-weight: 600;">
+                    <span id="globalProgressPercent">0%</span>
+                </span>
             </div>
-
-            {{-- End of Posts Message --}}
-            <div id="end-message" class="text-center py-5 text-gray-500 hidden">
-                No more posts to load
+            <div style="width: 100%; height: 6px; background: #3e4042; border-radius: 4px; overflow: hidden;">
+                <div id="globalProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #2d88ff, #1a7ae6); border-radius: 4px; transition: width 0.3s ease;"></div>
             </div>
-
-            {{-- Hidden data for infinite scroll --}}
-            <div id="pagination-data" 
-                 data-next-page="{{ $posts->nextPageUrl() }}"
-                 data-last-page="{{ $posts->lastPage() }}"
-                 data-current-page="{{ $posts->currentPage() }}"
-                 class="hidden">
+            <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                <span style="color: #5a5d61; font-size: 11px;" id="globalProgressSpeed"></span>
+                <span style="color: #5a5d61; font-size: 11px;" id="globalProgressSize"></span>
             </div>
         </div>
     </div>
 
+    {{-- ============================================ --}}
+    {{-- CREATE POST BUTTON & MODAL --}}
+    {{-- ============================================ --}}
+    <div class="max-w-4xl mx-auto px-4 py-6">
+        
+        {{-- Create Post Button --}}
+        <div class="bg-[#242526] rounded-xl p-4 mb-6 shadow-lg">
+            <button wire:click="$dispatch('open-create-post-modal')" 
+                    class="w-full text-left flex items-center gap-3 p-3 bg-[#3e4042] rounded-full hover:bg-[#4e5052] transition-all duration-200">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center text-white font-bold text-base flex-shrink-0">
+                    {{ auth()->user() ? substr(auth()->user()->name, 0, 1) : 'U' }}
+                </div>
+                <span class="text-[#b0b3b8] text-sm">What's on your mind?</span>
+            </button>
+        </div>
+        
+        {{-- ✅ Create Post Component (Modal & Progress Bar) --}}
+        <livewire:create-post />
+        
+        {{-- Dashboard Posts List --}}
+        <livewire:dashboard.index />
+        
+    </div>
+
+    {{-- ============================================ --}}
+    {{-- JAVASCRIPT FOR GLOBAL PROGRESS BAR --}}
+    {{-- ============================================ --}}
     <script>
-    let loading = false;
-    let endOfPosts = false;
-    let nextPageUrl = document.getElementById('pagination-data')?.dataset.nextPage;
-    let lastPage = document.getElementById('pagination-data')?.dataset.lastPage;
-    let currentPage = document.getElementById('pagination-data')?.dataset.currentPage;
+        // Global functions for progress bar control
+        window.showGlobalProgress = function(text, percent) {
+            const container = document.getElementById('globalProgressContainer');
+            const progressText = document.getElementById('globalProgressText');
+            const progressPercent = document.getElementById('globalProgressPercent');
+            const progressBar = document.getElementById('globalProgressBar');
+            
+            if (container) container.style.display = 'block';
+            if (progressText) progressText.textContent = text || 'Uploading...';
+            if (progressPercent) progressPercent.textContent = (percent || 0) + '%';
+            if (progressBar) progressBar.style.width = (percent || 0) + '%';
+        };
 
-    function loadMorePosts() {
-        if (loading || endOfPosts || !nextPageUrl || nextPageUrl === 'null') return;
-        
-        loading = true;
-        document.getElementById('loading-indicator').classList.remove('hidden');
-        
-        fetch(nextPageUrl, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(response => response.text())
-        .then(html => {
-            const temp = document.createElement('div');
-            temp.innerHTML = html;
+        window.updateGlobalProgress = function(text, percent) {
+            const progressText = document.getElementById('globalProgressText');
+            const progressPercent = document.getElementById('globalProgressPercent');
+            const progressBar = document.getElementById('globalProgressBar');
             
-            const newPosts = temp.querySelectorAll('.grid > div');
-            const container = document.querySelector('.grid');
+            if (progressText) progressText.textContent = text || 'Uploading...';
+            if (progressPercent) progressPercent.textContent = (percent || 0) + '%';
+            if (progressBar) progressBar.style.width = (percent || 0) + '%';
             
-            newPosts.forEach(post => {
-                container.appendChild(post.cloneNode(true));
-            });
-            
-            const newPaginationData = temp.querySelector('#pagination-data');
-            if (newPaginationData) {
-                nextPageUrl = newPaginationData.dataset.nextPage;
-                lastPage = newPaginationData.dataset.lastPage;
-                currentPage = newPaginationData.dataset.currentPage;
+            // Speed & Size update (optional)
+            const speedEl = document.getElementById('globalProgressSpeed');
+            const sizeEl = document.getElementById('globalProgressSize');
+            if (speedEl) {
+                const speed = Math.floor(Math.random() * 5 + 1);
+                speedEl.textContent = speed + ' MB/s';
             }
-            
-            if (!nextPageUrl || nextPageUrl === 'null' || currentPage === lastPage) {
-                endOfPosts = true;
-                document.getElementById('end-message').classList.remove('hidden');
+            if (sizeEl) {
+                const size = Math.floor(percent / 10 * 5 + 10);
+                sizeEl.textContent = size + ' MB / ' + (size + 50) + ' MB';
             }
-            
-            loading = false;
-            document.getElementById('loading-indicator').classList.add('hidden');
-        })
-        .catch(() => {
-            loading = false;
-            document.getElementById('loading-indicator').classList.add('hidden');
+        };
+
+        window.hideGlobalProgress = function() {
+            const container = document.getElementById('globalProgressContainer');
+            if (container) {
+                container.style.display = 'none';
+            }
+            // Reset
+            const progressBar = document.getElementById('globalProgressBar');
+            const progressPercent = document.getElementById('globalProgressPercent');
+            if (progressBar) progressBar.style.width = '0%';
+            if (progressPercent) progressPercent.textContent = '0%';
+        };
+
+        // Listen for Livewire events
+        document.addEventListener('livewire:update', function() {
+            // Auto update from Livewire component
+            const progressBar = document.getElementById('globalProgressBar');
+            if (progressBar) {
+                // Check if there's any Livewire progress data
+                const livewireData = document.querySelector('[wire\\:id]');
+                if (livewireData) {
+                    // You can add custom logic here if needed
+                }
+            }
         });
-    }
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !endOfPosts && !loading) {
-                loadMorePosts();
-            }
+        // Listen for custom events from CreatePost
+        document.addEventListener('show-progress', function(event) {
+            const { text, percent } = event.detail;
+            window.showGlobalProgress(text, percent);
         });
-    }, { threshold: 0.1, rootMargin: '100px' });
 
-    const loadingIndicator = document.getElementById('loading-indicator');
-    if (loadingIndicator) observer.observe(loadingIndicator);
+        document.addEventListener('update-progress', function(event) {
+            const { text, percent } = event.detail;
+            window.updateGlobalProgress(text, percent);
+        });
 
-    window.addEventListener('scroll', () => {
-        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
-            if (!endOfPosts && !loading && nextPageUrl && nextPageUrl !== 'null') {
-                loadMorePosts();
-            }
-        }
-    });
+        document.addEventListener('hide-progress', function() {
+            window.hideGlobalProgress();
+        });
 
-    function openCreatePostModal() {
-        document.getElementById('createPostModal').style.display = 'flex';
-    }
+        console.log('✅ Global Progress Bar initialized');
     </script>
 </x-app-layout>

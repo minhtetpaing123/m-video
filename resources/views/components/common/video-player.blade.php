@@ -17,12 +17,10 @@
     $getStreamUrl = function($path) {
         if (!$path) return '';
         
-        // Bunny CDN URL - တိုက်ရိုက်ပြန်ပေး
         if (filter_var($path, FILTER_VALIDATE_URL)) {
             return $path;
         }
         
-        // Local storage fallback
         if (str_starts_with($path, 'public/')) {
             $path = substr($path, 7);
         }
@@ -30,7 +28,6 @@
         return route('video.stream', ['path' => $path]);
     };
 
-    // Get actual URLs - Bunny CDN ကို အရင်ဦးစားပေး
     $url1080 = $getStreamUrl($src_1080 ?? $src);
     $url720 = $getStreamUrl($src_720 ?? $src);
     $url480 = $getStreamUrl($src_480);
@@ -40,7 +37,6 @@
     $subtitleUrl = $subtitle ? Storage::url($subtitle) : '';
     $playerId = 'player_' . md5($src ?? uniqid());
     
-    // Build quality options array
     $qualities = [
         'Auto' => ['url' => 'auto', 'label' => 'Auto'],
         '1080p' => ['url' => $url1080 ?: $url720, 'label' => '1080p'],
@@ -51,7 +47,6 @@
         '144p' => ['url' => $url144 ?: $url720, 'label' => '144p'],
     ];
     
-    // Determine available qualities for Auto detection
     $availableQualities = [];
     if ($url1080) $availableQualities['1080p'] = $url1080;
     if ($url720) $availableQualities['720p'] = $url720;
@@ -60,16 +55,13 @@
     if ($url240) $availableQualities['240p'] = $url240;
     if ($url144) $availableQualities['144p'] = $url144;
     
-    // If no specific qualities, use src as 720p
     if (empty($availableQualities)) {
         $availableQualities['720p'] = $getStreamUrl($src);
     }
     
-    // Default quality
     $defaultQuality = 'Auto';
     $defaultLabel = 'Auto';
     
-    // Get the highest available quality
     $qualityPriority = ['1080p', '720p', '480p', '360p', '240p', '144p'];
     foreach ($qualityPriority as $q) {
         if (isset($availableQualities[$q])) {
@@ -79,8 +71,18 @@
     }
 @endphp
 
-<div class="relative w-full max-w-full bg-black rounded-lg md:rounded-xl overflow-hidden group select-none {{ $class }}" id="vp-{{ $playerId }}">
-    <div class="relative w-full aspect-video">
+<div class="relative w-full max-w-full bg-black rounded-lg md:rounded-xl overflow-hidden group select-none {{ $class }}" 
+     id="vp-{{ $playerId }}">
+    
+    <div class="relative w-full aspect-video" id="video-wrapper-{{ $playerId }}">
+        
+        {{-- LOADING SPINNER (Retry ပါ) --}}
+        <div id="loadingSpinner_{{ $playerId }}" 
+             style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 15; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a0a; transition: opacity 0.5s ease;">
+            <div style="width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid #2d88ff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <span style="color: rgba(255,255,255,0.6); font-size: 14px; margin-top: 16px; font-weight: 500; letter-spacing: 0.5px;">Loading video...</span>
+        </div>
+
         <video 
             id="{{ $playerId }}"
             class="w-full h-full block object-contain"
@@ -90,6 +92,10 @@
             x5-playsinline
             {{ $autoplay ? 'autoplay muted' : '' }}
             poster="{{ $poster ?? '' }}"
+            controlsList="nodownload noremoteplayback noplaybackrate"
+            disablePictureInPicture
+            oncontextmenu="return false;"
+            style="opacity: 0; transition: opacity 0.5s ease;"
         >
             <source src="{{ $availableQualities[$defaultQuality] ?? reset($availableQualities) }}" type="video/mp4" data-quality="{{ $defaultQuality }}">
             @if($subtitleUrl)
@@ -100,7 +106,7 @@
 
         <!-- Double Tap Indicators -->
         <div class="rewind-indicator absolute left-0 top-0 w-1/3 h-full flex flex-col items-center justify-center bg-black/30 opacity-0 pointer-events-none transition-opacity duration-200 z-20">
-            <svg class="w-8 h-8 text-white fill-current" viewBox="0 0 24 24"><path d="M12.5 19.38M11.5 19.38l-7-5 7-5v10zm8-10l-7 5 7-5v10z"/></svg>
+            <svg class="w-8 h-8 text-white fill-current" viewBox="0 0 24 24"><path d="M12.5 19.38M11.5 19.38l-7-5 7-5v10zm8-10l-7 5 7 5v-10z"/></svg>
             <span class="text-white text-xs font-semibold mt-1">-10s</span>
         </div>
 
@@ -117,39 +123,41 @@
         <!-- Bottom Custom Controls Bar -->
         <div class="custom-controls-bar absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent flex flex-col gap-2 p-3 md:p-4 opacity-0 transition-opacity duration-300 z-30" id="controls-bar-{{ $playerId }}">
             
-            <!-- Progress/Seek Bar -->
-            <div class="relative w-full h-1.5 bg-white/30 rounded-full flex items-center">
-                <div class="progress-bar-fill absolute left-0 top-0 h-full bg-red-600 rounded-full w-0 pointer-events-none"></div>
-                <input type="range" class="seek-slider absolute left-0 w-full h-full opacity-0 cursor-pointer m-0 z-40" min="0" max="100" value="0" step="0.1">
+            <div class="relative w-full h-4 md:h-5 flex items-center cursor-pointer group/seek">
+                <div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-2 md:h-2.5 bg-white/30 rounded-full overflow-hidden">
+                    <div class="progress-bar-fill absolute left-0 top-0 h-full bg-red-600 rounded-full w-0 transition-none"></div>
+                    <div class="absolute left-0 top-0 h-full bg-white/20 rounded-full w-0 opacity-0 group-hover/seek:opacity-100 transition-opacity pointer-events-none"></div>
+                </div>
+                
+                <input type="range" 
+                       class="seek-slider absolute left-0 top-1/2 -translate-y-1/2 w-full h-8 md:h-10 opacity-0 cursor-pointer m-0 z-40 appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:md:w-6 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:md:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-red-600 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:shadow-red-500/50 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:md:w-6 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:md:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-red-600 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg" 
+                       min="0" 
+                       max="100" 
+                       value="0" 
+                       step="0.1"
+                       id="seek-{{ $playerId }}">
             </div>
 
-            <!-- Controls Buttons Panel -->
             <div class="flex items-center justify-between w-full mt-1">
-                <div class="flex items-center gap-4">
-                    <!-- Play/Pause Button -->
+                <div class="flex items-center gap-3 md:gap-4">
                     <button type="button" class="toggle-play bg-none border-none p-0 cursor-pointer flex items-center text-white hover:text-red-500 transition-colors">
-                        <svg class="play-svg w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                        <svg class="pause-svg w-6 h-6 fill-current hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        <svg class="play-svg w-5 h-5 md:w-6 md:h-6 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <svg class="pause-svg w-5 h-5 md:w-6 md:h-6 fill-current hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                     </button>
 
-                    <!-- Mute/Unmute Button -->
                     <button type="button" class="toggle-mute bg-none border-none p-0 cursor-pointer flex items-center text-white hover:text-red-500 transition-colors">
-                        <svg class="volume-up-svg w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-                        <svg class="volume-mute-svg w-6 h-6 fill-current hidden" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.21.05-.42.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+                        <svg class="volume-up-svg w-5 h-5 md:w-6 md:h-6 fill-current" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                        <svg class="volume-mute-svg w-5 h-5 md:w-6 md:h-6 fill-current hidden" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.21.05-.42.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
                     </button>
 
-                    <!-- Time Display -->
                     <span class="time-display text-white text-xs md:text-sm font-sans whitespace-nowrap min-w-[65px]">0:00 / 0:00</span>
                 </div>
 
-                <div class="flex items-center gap-3 md:gap-4 relative select-none">
+                <div class="flex items-center gap-2 md:gap-4 relative select-none">
                     @if($subtitleUrl)
-                    <button type="button" class="toggle-cc bg-none border-none p-0 cursor-pointer flex items-center text-white hover:text-red-500 transition-colors font-bold text-xs md:text-sm border border-white/40 rounded px-1 py-0.5 leading-none bg-white/10 group-[.cc-active]:bg-red-600 group-[.cc-active]:border-red-600">CC</button>
+                    <button type="button" class="toggle-cc bg-none border-none p-0 cursor-pointer flex items-center text-white hover:text-red-500 transition-colors font-bold text-xs md:text-sm border border-white/40 rounded px-1.5 py-0.5 leading-none bg-white/10 group-[.cc-active]:bg-red-600 group-[.cc-active]:border-red-600">CC</button>
                     @endif
 
-                    <!-- ============================================ -->
-                    <!-- VIDEO QUALITY BUTTON - Auto to 144p -->
-                    <!-- ============================================ -->
                     <button type="button" class="toggle-quality bg-none border-none p-0 cursor-pointer flex items-center text-white hover:text-red-500 font-sans font-bold text-xs md:text-sm transition-colors">{{ $defaultLabel }}</button>
                     <div class="quality-menu absolute bottom-8 right-16 bg-black/90 border border-white/10 rounded-md py-1 flex flex-col min-w-[80px] hidden shadow-xl z-50">
                         @foreach($qualities as $label => $data)
@@ -171,7 +179,6 @@
                         @endforeach
                     </div>
 
-                    <!-- Speed Changer Button -->
                     <button type="button" class="toggle-speed bg-none border-none p-0 cursor-pointer flex items-center text-white hover:text-red-500 font-sans font-bold text-xs md:text-sm transition-colors">1.0x</button>
                     <div class="speed-menu absolute bottom-8 right-8 bg-black/90 border border-white/10 rounded-md py-1 flex flex-col min-w-[70px] hidden shadow-xl z-50">
                         <button type="button" class="speed-opt text-white text-xs py-1.5 px-3 text-left hover:bg-white/20" data-speed="0.5">0.5x</button>
@@ -180,9 +187,8 @@
                         <button type="button" class="speed-opt text-white text-xs py-1.5 px-3 text-left hover:bg-white/20" data-speed="2.0">2.0x</button>
                     </div>
 
-                    <!-- Fullscreen Button -->
                     <button type="button" class="toggle-fullscreen bg-none border-none p-0 cursor-pointer flex items-center text-white hover:text-red-500 transition-colors">
-                        <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                        <svg class="w-5 h-5 md:w-6 md:h-6 fill-current" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
                     </button>
                 </div>
             </div>
@@ -190,11 +196,21 @@
     </div>
 </div>
 
+<style>
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('vp-{{ $playerId }}');
     const video = document.getElementById('{{ $playerId }}');
     const controlsBar = document.getElementById('controls-bar-{{ $playerId }}');
+    const videoWrapper = document.getElementById('video-wrapper-{{ $playerId }}');
+    const spinner = document.getElementById('loadingSpinner_{{ $playerId }}');
+    
     if (!video || !container || !controlsBar) return;
 
     const playBtn = container.querySelector('.toggle-play');
@@ -212,14 +228,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const ccBtn = container.querySelector('.toggle-cc');
     const fullscreenBtn = container.querySelector('.toggle-fullscreen');
     const timeDisplay = container.querySelector('.time-display');
-    const seekSlider = container.querySelector('.seek-slider');
+    const seekSlider = document.getElementById('seek-{{ $playerId }}');
     const barFill = container.querySelector('.progress-bar-fill');
-    const videoWrapper = video.parentElement;
+    const videoParent = video.parentElement;
     let controlsTimeout, lastTap = 0;
     let isPlaying = false;
     let currentQuality = '{{ $defaultLabel }}';
+    let retryCount = 0;
+    const maxRetries = 5;
     
-    // Available qualities for Auto detection
     const availableQualities = @json($availableQualities);
     const qualityPriority = ['1080p', '720p', '480p', '360p', '240p', '144p'];
     let isAutoQuality = (currentQuality === 'Auto');
@@ -231,56 +248,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return mins + ":" + (secs < 10 ? "0" : "") + secs;
     }
 
-    // ============================================
-    // AUTO QUALITY DETECTION
-    // ============================================
-    function detectAutoQuality() {
-        if (!isAutoQuality) return;
-        
-        let connectionType = 'slow';
-        if (navigator.connection) {
-            const conn = navigator.connection;
-            if (conn.effectiveType === '4g') connectionType = 'fast';
-            else if (conn.effectiveType === '3g') connectionType = 'medium';
-            else connectionType = 'slow';
-        }
-        
-        let selectedQuality = '720p';
-        if (connectionType === 'fast') selectedQuality = '1080p';
-        else if (connectionType === 'medium') selectedQuality = '720p';
-        else selectedQuality = '480p';
-        
-        if (!availableQualities[selectedQuality]) {
-            for (let q of qualityPriority) {
-                if (availableQualities[q]) {
-                    selectedQuality = q;
-                    break;
-                }
-            }
-        }
-        
-        const currentSrc = video.src;
-        const newSrc = availableQualities[selectedQuality];
-        if (newSrc && currentSrc !== newSrc) {
-            const currentTime = video.currentTime;
-            const isPaused = video.paused;
-            const currentSpeed = video.playbackRate;
-            
-            video.src = newSrc;
-            qualityBtn.textContent = 'Auto';
-            
-            video.addEventListener('loadedmetadata', function onLoad() {
-                video.currentTime = currentTime;
-                video.playbackRate = currentSpeed;
-                if (!isPaused) video.play();
-                video.removeEventListener('loadedmetadata', onLoad);
-            }, { once: true });
-        }
-    }
-
-    // ============================================
-    // CONTROLS VISIBILITY
-    // ============================================
     function showControls() {
         controlsBar.style.opacity = '1';
         clearTimeout(controlsTimeout);
@@ -297,13 +264,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isPlaying) {
             controlsTimeout = setTimeout(function() {
                 hideControls();
-            }, 2000);
+            }, 3000);
         }
     }
 
-    // ============================================
-    // TOGGLE PLAY
-    // ============================================
     function togglePlay() {
         if (video.paused) {
             video.play();
@@ -336,21 +300,44 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function toggleFullscreen() {
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const targetElement = isMobile ? video : container;
-        if (!document.fullscreenElement && !document.webkitFullscreenElement && !video.webkitDisplayingFullscreen) {
-            if (targetElement.requestFullscreen) { targetElement.requestFullscreen(); }
-            else if (targetElement.webkitRequestFullscreen) { targetElement.webkitRequestFullscreen(); }
-            else if (video.webkitEnterFullscreen) { video.webkitEnterFullscreen(); }
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (container.requestFullscreen) {
+                container.requestFullscreen();
+            } else if (container.webkitRequestFullscreen) {
+                container.webkitRequestFullscreen();
+            }
         } else {
-            if (document.exitFullscreen) { document.exitFullscreen(); }
-            else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
         }
     }
 
-    // ============================================
-    // MOUSE EVENTS
-    // ============================================
+    function handleFullscreenChange() {
+        const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+        
+        if (isFullscreen) {
+            videoWrapper.classList.remove('aspect-video');
+            videoWrapper.style.height = '100vh';
+            videoWrapper.style.width = '100vw';
+            video.style.objectFit = 'contain';
+            showControls();
+        } else {
+            videoWrapper.classList.add('aspect-video');
+            videoWrapper.style.height = '';
+            videoWrapper.style.width = '';
+            video.style.objectFit = 'contain';
+            if (isPlaying) {
+                autoHideControls();
+            }
+        }
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
     container.addEventListener('mouseenter', function() {
         showControls();
         clearTimeout(controlsTimeout);
@@ -368,32 +355,26 @@ document.addEventListener('DOMContentLoaded', function() {
             clearTimeout(controlsTimeout);
             controlsTimeout = setTimeout(function() {
                 hideControls();
-            }, 2000);
+            }, 3000);
         }
     });
 
-    // ============================================
-    // TOUCH EVENTS
-    // ============================================
     container.addEventListener('touchstart', function() {
         showControls();
         clearTimeout(controlsTimeout);
         if (isPlaying) {
             controlsTimeout = setTimeout(function() {
                 hideControls();
-            }, 2000);
+            }, 3000);
         }
     });
 
-    // ============================================
-    // VIDEO CLICK
-    // ============================================
-    videoWrapper.addEventListener('click', function(e) {
+    videoParent.addEventListener('click', function(e) {
         if (e.target.closest('.custom-controls-bar')) return;
         
         const now = Date.now();
         if (now - lastTap < 300) {
-            const rect = videoWrapper.getBoundingClientRect();
+            const rect = videoParent.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             if (clickX < rect.width / 3) {
                 video.currentTime = Math.max(0, video.currentTime - 10);
@@ -421,7 +402,60 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================
-    // QUALITY - Auto + 1080p to 144p
+    // SEEK SLIDER
+    // ============================================
+    let isSeeking = false;
+
+    function updateSeek(clientX) {
+        if (!video.duration || !seekSlider) return;
+        const rect = seekSlider.getBoundingClientRect();
+        let x = (clientX - rect.left) / rect.width;
+        x = Math.max(0, Math.min(1, x));
+        const newTime = x * video.duration;
+        
+        seekSlider.value = x * 100;
+        barFill.style.width = (x * 100) + '%';
+        timeDisplay.textContent = formatTime(newTime) + " / " + formatTime(video.duration);
+        video.currentTime = newTime;
+    }
+
+    if (seekSlider) {
+        seekSlider.addEventListener('pointerdown', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            isSeeking = true;
+            showControls();
+            clearTimeout(controlsTimeout);
+            updateSeek(e.clientX);
+        });
+
+        seekSlider.addEventListener('pointermove', function(e) {
+            if (isSeeking) {
+                e.preventDefault();
+                updateSeek(e.clientX);
+            }
+        });
+
+        seekSlider.addEventListener('pointerup', function(e) {
+            if (isSeeking) {
+                isSeeking = false;
+                const val = parseFloat(seekSlider.value) / 100;
+                video.currentTime = val * video.duration;
+                barFill.style.width = (val * 100) + '%';
+                showControls();
+                if (isPlaying) {
+                    controlsTimeout = setTimeout(function() { hideControls(); }, 3000);
+                }
+            }
+        });
+
+        seekSlider.addEventListener('pointercancel', function() {
+            isSeeking = false;
+        });
+    }
+
+    // ============================================
+    // QUALITY
     // ============================================
     if(qualityBtn) {
         qualityBtn.addEventListener('click', function(e) { 
@@ -472,6 +506,53 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================
+    // AUTO QUALITY DETECTION
+    // ============================================
+    function detectAutoQuality() {
+        if (!isAutoQuality) return;
+        
+        let connectionType = 'slow';
+        if (navigator.connection) {
+            const conn = navigator.connection;
+            if (conn.effectiveType === '4g') connectionType = 'fast';
+            else if (conn.effectiveType === '3g') connectionType = 'medium';
+            else connectionType = 'slow';
+        }
+        
+        let selectedQuality = '720p';
+        if (connectionType === 'fast') selectedQuality = '1080p';
+        else if (connectionType === 'medium') selectedQuality = '720p';
+        else selectedQuality = '480p';
+        
+        if (!availableQualities[selectedQuality]) {
+            for (let q of qualityPriority) {
+                if (availableQualities[q]) {
+                    selectedQuality = q;
+                    break;
+                }
+            }
+        }
+        
+        const currentSrc = video.src;
+        const newSrc = availableQualities[selectedQuality];
+        if (newSrc && currentSrc !== newSrc) {
+            const currentTime = video.currentTime;
+            const isPaused = video.paused;
+            const currentSpeed = video.playbackRate;
+            
+            video.src = newSrc;
+            qualityBtn.textContent = 'Auto';
+            
+            video.addEventListener('loadedmetadata', function onLoad() {
+                video.currentTime = currentTime;
+                video.playbackRate = currentSpeed;
+                if (!isPaused) video.play();
+                video.removeEventListener('loadedmetadata', onLoad);
+            }, { once: true });
+        }
+    }
+
+    // ============================================
     // CC
     // ============================================
     if(ccBtn) {
@@ -510,47 +591,197 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ============================================
-    // CLOSE MENUS
-    // ============================================
     document.addEventListener('click', function() { 
         speedMenu.classList.add('hidden'); 
         if(qualityMenu) qualityMenu.classList.add('hidden'); 
     });
 
-    // ============================================
-    // BUTTON EVENTS
-    // ============================================
     playBtn.addEventListener('click', function(e) { e.stopPropagation(); togglePlay(); });
     muteBtn.addEventListener('click', function(e) { e.stopPropagation(); toggleMute(); });
     fullscreenBtn.addEventListener('click', function(e) { e.stopPropagation(); toggleFullscreen(); });
 
     // ============================================
-    // VIDEO EVENTS
     // ============================================
+    // ERROR HANDLING - Retry လုပ်မယ် (Failed မပြဘူး)
+    // ============================================
+    // ============================================
+    video.addEventListener('error', function(e) {
+        const error = video.error;
+        
+        // Network/Source error ဆိုရင် retry လုပ်မယ်
+        if (error && (error.code === 2 || error.code === 3 || error.code === 4)) {
+            retryCount++;
+            
+            if (retryCount <= maxRetries) {
+                // Spinner ပြမယ်
+                if (spinner) {
+                    spinner.style.display = 'flex';
+                    spinner.style.opacity = '1';
+                    spinner.innerHTML = `
+                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                            <div style="width:40px;height:40px;border:4px solid rgba(255,255,255,0.1);border-top:4px solid #2d88ff;border-radius:50%;animation:spin 1s linear infinite;"></div>
+                            <span style="color:rgba(255,255,255,0.8);font-size:14px;margin-top:12px;font-weight:500;">
+                                Loading... (Attempt ${retryCount}/${maxRetries})
+                            </span>
+                            <span style="color:rgba(255,255,255,0.4);font-size:12px;margin-top:4px;">
+                                ${error.message || 'Connecting...'}
+                            </span>
+                        </div>
+                    `;
+                }
+                
+                // 2 စက္ကန့်နောက်ကျမှ reload
+                setTimeout(function() {
+                    const currentSrc = video.src;
+                    if (currentSrc) {
+                        video.load();
+                        video.play().catch(function() {});
+                    } else {
+                        const defaultSrc = availableQualities['720p'] || Object.values(availableQualities)[0];
+                        if (defaultSrc) {
+                            video.src = defaultSrc;
+                            video.load();
+                        }
+                    }
+                }, 2000);
+            } else {
+                // ၅ ကြိမ်ပြီးရင် loading ပဲပြနေမယ်
+                if (spinner) {
+                    spinner.innerHTML = `
+                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+                            <div style="font-size:36px;margin-bottom:8px;">🔄</div>
+                            <div style="color:rgba(255,255,255,0.8);font-size:14px;font-weight:500;text-align:center;">
+                                Still loading...
+                            </div>
+                            <button onclick="location.reload()" 
+                                    style="margin-top:12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;padding:6px 20px;border-radius:6px;cursor:pointer;font-size:13px;">
+                                Reload Page
+                            </button>
+                            <button onclick="document.getElementById('loadingSpinner_{{ $playerId }}').style.display='none'" 
+                                    style="margin-top:6px;background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:12px;">
+                                Dismiss
+                            </button>
+                        </div>
+                    `;
+                    spinner.style.display = 'flex';
+                    spinner.style.opacity = '1';
+                }
+            }
+        } else if (error) {
+            // တခြား error ဆိုရင်လည်း retry
+            if (spinner) {
+                spinner.style.display = 'flex';
+                spinner.style.opacity = '1';
+                spinner.innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                        <div style="width:40px;height:40px;border:4px solid rgba(255,255,255,0.1);border-top:4px solid #f39c12;border-radius:50%;animation:spin 1s linear infinite;"></div>
+                        <span style="color:rgba(255,255,255,0.8);font-size:14px;margin-top:12px;">
+                            Retrying...
+                        </span>
+                    </div>
+                `;
+            }
+            setTimeout(function() {
+                video.load();
+            }, 1500);
+        }
+    });
+
+    // ============================================
+    // VIDEO EVENTS (Spinner ထိန်းချုပ်)
+    // ============================================
+    video.addEventListener('loadstart', function() {
+        retryCount = 0;
+        if (spinner) {
+            spinner.style.display = 'flex';
+            spinner.style.opacity = '1';
+            spinner.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.1);border-top:4px solid #2d88ff;border-radius:50%;animation:spin 1s linear infinite;"></div>
+                    <span style="color:rgba(255,255,255,0.6);font-size:14px;margin-top:16px;font-weight:500;">Loading video...</span>
+                </div>
+            `;
+        }
+        video.style.opacity = '0';
+    });
+
+    video.addEventListener('loadeddata', function() {
+        retryCount = 0;
+        if (spinner) {
+            spinner.style.opacity = '0';
+            setTimeout(function() {
+                spinner.style.display = 'none';
+                spinner.innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                        <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.1);border-top:4px solid #2d88ff;border-radius:50%;animation:spin 1s linear infinite;"></div>
+                        <span style="color:rgba(255,255,255,0.6);font-size:14px;margin-top:16px;font-weight:500;">Loading video...</span>
+                    </div>
+                `;
+            }, 500);
+        }
+        video.style.opacity = '1';
+    });
+
+    video.addEventListener('canplay', function() {
+        retryCount = 0;
+        if (spinner) {
+            spinner.style.opacity = '0';
+            setTimeout(function() {
+                spinner.style.display = 'none';
+            }, 500);
+        }
+        video.style.opacity = '1';
+    });
+
+    video.addEventListener('playing', function() {
+        retryCount = 0;
+        if (spinner) {
+            spinner.style.opacity = '0';
+            setTimeout(function() {
+                spinner.style.display = 'none';
+            }, 500);
+        }
+        video.style.opacity = '1';
+    });
+
+    video.addEventListener('waiting', function() {
+        if (spinner) {
+            spinner.style.display = 'flex';
+            spinner.style.opacity = '1';
+            spinner.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <div style="width:40px;height:40px;border:4px solid rgba(255,255,255,0.1);border-top:4px solid #f39c12;border-radius:50%;animation:spin 1s linear infinite;"></div>
+                    <span style="color:rgba(255,255,255,0.6);font-size:14px;margin-top:12px;">Buffering...</span>
+                </div>
+            `;
+        }
+    });
+
     video.addEventListener('timeupdate', function() {
+        if (isSeeking) return;
         if (!video.duration) return;
-        const current = video.currentTime, duration = video.duration, percentage = (current / duration) * 100;
+        const percentage = (video.currentTime / video.duration) * 100;
         seekSlider.value = percentage; 
         barFill.style.width = percentage + '%';
-        timeDisplay.textContent = formatTime(current) + " / " + formatTime(duration);
-        localStorage.setItem('video_time_' + '{{ md5($src) }}', current);
+        timeDisplay.textContent = formatTime(video.currentTime) + " / " + formatTime(video.duration);
+        localStorage.setItem('video_time_' + '{{ md5($src) }}', video.currentTime);
     });
 
     video.addEventListener('loadedmetadata', function() {
+        retryCount = 0;
         timeDisplay.textContent = formatTime(video.currentTime) + " / " + formatTime(video.duration);
         if(video.muted) { volUpSvg.classList.add('hidden'); volMuteSvg.classList.remove('hidden'); }
         const savedTime = localStorage.getItem('video_time_' + '{{ md5($src) }}');
         if (savedTime) { const saved = parseFloat(savedTime); if (saved < video.duration) video.currentTime = saved; }
         if (isAutoQuality) detectAutoQuality();
-    });
-
-    seekSlider.addEventListener('input', function() {
-        if (!video.duration) return;
-        video.currentTime = (seekSlider.value / 100) * video.duration;
-        barFill.style.width = seekSlider.value + '%'; 
-        showControls();
-        clearTimeout(controlsTimeout);
+        
+        if (spinner) {
+            spinner.style.opacity = '0';
+            setTimeout(function() {
+                spinner.style.display = 'none';
+            }, 500);
+        }
+        video.style.opacity = '1';
     });
 
     // ============================================
@@ -589,13 +820,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === ' ') { e.preventDefault(); togglePlay(); }
         if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); }
         if (e.key === 'm' || e.key === 'M') { e.preventDefault(); toggleMute(); }
-        if (e.key === 'ArrowRight') { e.preventDefault(); video.currentTime = Math.min(video.currentTime + 5, video.duration); showControls(); clearTimeout(controlsTimeout); if (isPlaying) { controlsTimeout = setTimeout(function() { hideControls(); }, 2000); } }
-        if (e.key === 'ArrowLeft') { e.preventDefault(); video.currentTime = Math.max(video.currentTime - 5, 0); showControls(); clearTimeout(controlsTimeout); if (isPlaying) { controlsTimeout = setTimeout(function() { hideControls(); }, 2000); } }
+        if (e.key === 'ArrowRight') { e.preventDefault(); video.currentTime = Math.min(video.currentTime + 5, video.duration); showControls(); clearTimeout(controlsTimeout); if (isPlaying) { controlsTimeout = setTimeout(function() { hideControls(); }, 3000); } }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); video.currentTime = Math.max(video.currentTime - 5, 0); showControls(); clearTimeout(controlsTimeout); if (isPlaying) { controlsTimeout = setTimeout(function() { hideControls(); }, 3000); } }
     });
 
-    // ============================================
-    // PREVENT SCROLL
-    // ============================================
     const wrapper = container.querySelector('.aspect-video');
     if (wrapper) {
         wrapper.addEventListener('touchmove', function(e) {
@@ -603,9 +831,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, { passive: false });
     }
 
-    // ============================================
-    // NETWORK CHANGE DETECTION (for Auto Quality)
-    // ============================================
     if (navigator.connection) {
         navigator.connection.addEventListener('change', function() {
             if (isAutoQuality) {
@@ -614,9 +839,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ============================================
-    // INIT
-    // ============================================
     setTimeout(function() {
         if (isPlaying) {
             controlsBar.style.opacity = '0';
@@ -626,6 +848,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 1000);
 
-    console.log('✅ Video player ready');
+    console.log('✅ Video player ready (Loading + Retry)');
 });
 </script>

@@ -58,7 +58,8 @@
                     <span class="ml-auto text-xs text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300">→</span>
                 </a>
                 
-                <a href="{{ route('profile.edit') }}" 
+                {{-- ✅ Profile Link - route('profile.settings') ကိုသုံးမယ် --}}
+                <a href="{{ route('profile.settings') }}" 
                    class="flex items-center gap-3 px-4 py-2.5 text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all duration-200 hover:pl-6 group">
                     <svg class="w-5 h-5 transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
