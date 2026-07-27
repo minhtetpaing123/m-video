@@ -14,7 +14,7 @@ class Show extends Component
     public $user;
     public $userId;
 
-    // ✅ Listen for profile updates
+    // Listen for profile updates
     protected $listeners = [
         'profileUpdated' => 'refreshProfile',
         'followUpdated' => '$refresh',
@@ -46,6 +46,6 @@ class Show extends Component
         return view('livewire.profile.show', [
             'videos' => $videos,
             'videoCount' => $this->user->posts()->count(),
-        ])->layout('layouts.app');
+        ])->layout('livewire.layout.app'); // 👈 dashboard/index အတိုင်း livewire.layout.app သို့ ပြောင်းထားပါသည်[span_3](start_span)[span_3](end_span)[span_4](start_span)[span_4](end_span)
     }
 }

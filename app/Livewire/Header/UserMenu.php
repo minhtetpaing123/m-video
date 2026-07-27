@@ -13,7 +13,7 @@ class UserMenu extends Component
         session()->invalidate();
         session()->regenerateToken();
 
-        this->dispatch('authUpdated');
+        $this->dispatch('authUpdated');
         return redirect()->to('/');
     }
 

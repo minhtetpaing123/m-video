@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -20,9 +21,11 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone', // ✅ Phone Column အား ထည့်သွင်းပေးလိုက်ပါသည်
         'password',
         'username',
         'avatar',
+        'cover', // ✅ Cover Photo / Video အတွက် ထည့်သွင်းပေးလိုက်ပါသည်
         'bio',
         'verified_at',
         // Notification settings
@@ -71,6 +74,14 @@ class User extends Authenticatable
         return $this->hasMany(Post::class);
     }
 
+    /**
+     * User တင်ထားသော Videos (Posts) များ၏ Relationship
+     */
+    public function videos()
+    {
+        return $this->hasMany(Post::class);
+    }
+
     public function comments()
     {
         return $this->hasMany(Comment::class);
@@ -107,6 +118,26 @@ class User extends Authenticatable
                     ->withTimestamps();
     }
 
+    // ============================================
+    // ✅ FOLLOW RELATIONSHIPS (အသစ်ထည့်သွင်းပေးလိုက်သည်)
+    // ============================================
+    
+    /**
+     * User ကို Follow လုပ်ထားသောသူများ (Followers)
+     */
+    public function followers()
+    {
+        return $this->belongsToMany(User::class, 'follows', 'following_id', 'follower_id')->withTimestamps();
+    }
+
+    /**
+     * User Follow လုပ်ထားသောသူများ (Following)
+     */
+    public function following()
+    {
+        return $this->belongsToMany(User::class, 'follows', 'follower_id', 'following_id')->withTimestamps();
+    }
+
     /**
      * Notification relationships
      */
@@ -121,13 +152,36 @@ class User extends Authenticatable
     }
 
     /**
-     * Get user's avatar URL
+     * Get user's avatar URL (✅ Robust Fallback Handler)[span_1](start_span)[span_1](end_span)
      */
     public function getAvatarUrlAttribute()
     {
-        return $this->avatar 
-            ? asset('storage/' . $this->avatar) 
-            : 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
+        // 1. Avatar မရှိပါက UI Avatars သို့ ပို့ရန်
+        if (empty($this->avatar)) {
+            return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
+        }
+
+        // 2. http:// သို့မဟုတ် https:// ပါပြီးသား Full URL ဖြစ်ပါက တိုက်ရိုက်သုံးရန်
+        if (str_starts_with($this->avatar, 'http://') || str_starts_with($this->avatar, 'https://')) {
+            return $this->avatar;
+        }
+
+        // 3. Local Storage ထဲမှာ တကယ်ရှိမရှိ စစ်ဆေးပြီး ရှိလျှင် asset() ဖြင့်ထုတ်ပေးရန်
+        if (Storage::disk('public')->exists($this->avatar)) {
+            return asset('storage/' . $this->avatar);
+        }
+
+        // 4. CDN သုံးထားပါက CDN URL နှင့် ပေါင်းစပ်ပေးရန်
+        $cdnUrl = env('BUNNY_CDN_URL', config('bunny.cdn_url'));
+        if (!empty($cdnUrl)) {
+            if (!str_starts_with($cdnUrl, 'http://') && !str_starts_with($cdnUrl, 'https://')) {
+                $cdnUrl = 'https://' . $cdnUrl;
+            }
+            return rtrim($cdnUrl, '/') . '/' . ltrim($this->avatar, '/');
+        }
+
+        // 5. အထက်ပါ အခြေအနေများ မဟုတ်ပါက Default Local Storage URL ပြန်ရန်
+        return asset('storage/' . $this->avatar);
     }
 
     /**

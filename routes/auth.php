@@ -17,10 +17,11 @@ Route::middleware('guest')->group(function () {
 
     Route::post('register', [RegisteredUserController::class, 'store']);
 
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
-        ->name('login');
+    // ❌ Controller Login Route များကို ဖျောက်ထားသည် (web.php တွင် Livewire Route အဖြစ် အစားထိုးထားပါသည်)
+    // Route::get('login', [AuthenticatedSessionController::class, 'create'])
+    //     ->name('login');
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    // Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');

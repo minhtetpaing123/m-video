@@ -1,28 +1,22 @@
-<div>
-    <div class="gradient-bg min-h-screen text-white">
-        
-        {{-- Navbar --}}
-        <nav class="nav-blur fixed top-0 left-0 right-0 z-50">
-            <!-- ... navbar ... -->
-        </nav>
+{{-- File Path: resources/views/profile/show.blade.php --}}
+{{-- Purpose: Profile Sub-components (Header, Tabs, Feed/About) အားလုံးကို စုစည်းပြသပေးသော Main Profile Page View --}}
 
-        {{-- Main Content --}}
-        <div class="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+<div class="bg-[#121420] min-h-screen text-gray-100 pb-24">
+    <div class="max-w-xl mx-auto">
 
-            {{-- ============================================ --}}
-            {{-- REAL-TIME PROFILE HEADER (Livewire Component) --}}
-            {{-- ============================================ --}}
-            <livewire:profile.header :user="$user" :videoCount="$videoCount" />
+        {{-- 1. Profile Header (Cover, Avatar, Bio, Follow/Edit Actions) --}}
+        <livewire:profile.profile-header :user="$user" />
 
-            {{-- Stats --}}
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <!-- ... stats ... -->
-            </div>
+        {{-- 2. Profile Tabs (Posts, Videos, About, Photos navigation) --}}
+        <livewire:profile.profile-tabs />
 
-            {{-- Videos Section --}}
-            <div class="glass-card rounded-3xl p-6 md:p-8">
-                <!-- ... videos ... -->
-            </div>
+        {{-- Content Area --}}
+        <div class="p-3 space-y-3">
+            
+            {{-- 3. Feed & About Section (Tab အလိုက် Posts/Videos/Photos သို့မဟုတ် About Info ပြသမည်) --}}
+            <livewire:profile.profile-feed :user="$user" />
+
         </div>
+
     </div>
 </div>

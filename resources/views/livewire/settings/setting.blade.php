@@ -212,33 +212,6 @@
     document.addEventListener('livewire:init', function () {
         
         // ============================================
-        // LANGUAGE LIVE UPDATE
-        // ============================================
-        Livewire.on('language-updated', (data) => {
-            const lang = data.language;
-            
-            const enBtn = document.getElementById('lang-en-btn');
-            const mmBtn = document.getElementById('lang-mm-btn');
-            
-            if (enBtn && mmBtn) {
-                if (lang === 'en') {
-                    enBtn.className = 'flex-1 py-1.5 px-2 rounded-lg border-2 transition duration-300 text-center text-xs border-green-500 bg-green-500/20 text-green-400';
-                    mmBtn.className = 'flex-1 py-1.5 px-2 rounded-lg border-2 transition duration-300 text-center text-xs border-gray-600 text-gray-400 hover:border-gray-500';
-                } else {
-                    enBtn.className = 'flex-1 py-1.5 px-2 rounded-lg border-2 transition duration-300 text-center text-xs border-gray-600 text-gray-400 hover:border-gray-500';
-                    mmBtn.className = 'flex-1 py-1.5 px-2 rounded-lg border-2 transition duration-300 text-center text-xs border-green-500 bg-green-500/20 text-green-400';
-                }
-            }
-            
-            const currentLang = document.getElementById('current-language');
-            if (currentLang) {
-                currentLang.textContent = lang === 'en' ? 'English' : 'မြန်မာ';
-            }
-            
-            document.documentElement.lang = lang;
-        });
-        
-        // ============================================
         // THEME LIVE UPDATE
         // ============================================
         Livewire.on('theme-updated', (data) => {
@@ -282,6 +255,9 @@
             if (currentTheme) {
                 currentTheme.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
             }
+            
+            // ✅ Dispatch to home-layout for theme sync
+            Livewire.dispatch('theme-changed', { theme: theme });
         });
         
         // ============================================
@@ -363,6 +339,33 @@
             } else {
                 root.setProperty('--font-size-base', '15px');
             }
+        });
+        
+        // ============================================
+        // LANGUAGE LIVE UPDATE
+        // ============================================
+        Livewire.on('language-updated', (data) => {
+            const lang = data.language;
+            
+            const enBtn = document.getElementById('lang-en-btn');
+            const mmBtn = document.getElementById('lang-mm-btn');
+            
+            if (enBtn && mmBtn) {
+                if (lang === 'en') {
+                    enBtn.className = 'flex-1 py-1.5 px-2 rounded-lg border-2 transition duration-300 text-center text-xs border-green-500 bg-green-500/20 text-green-400';
+                    mmBtn.className = 'flex-1 py-1.5 px-2 rounded-lg border-2 transition duration-300 text-center text-xs border-gray-600 text-gray-400 hover:border-gray-500';
+                } else {
+                    enBtn.className = 'flex-1 py-1.5 px-2 rounded-lg border-2 transition duration-300 text-center text-xs border-gray-600 text-gray-400 hover:border-gray-500';
+                    mmBtn.className = 'flex-1 py-1.5 px-2 rounded-lg border-2 transition duration-300 text-center text-xs border-green-500 bg-green-500/20 text-green-400';
+                }
+            }
+            
+            const currentLang = document.getElementById('current-language');
+            if (currentLang) {
+                currentLang.textContent = lang === 'en' ? 'English' : 'မြန်မာ';
+            }
+            
+            document.documentElement.lang = lang;
         });
         
         // ============================================

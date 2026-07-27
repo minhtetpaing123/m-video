@@ -16,6 +16,7 @@ class CreatePost extends Component
 {
     use WithFileUploads;
 
+    public $postId = null; // ✅ Edit အတွက် Post ID သိမ်းရန်
     public $title = '';
     public $content = '';
     public $description = '';
@@ -42,9 +43,29 @@ class CreatePost extends Component
         $this->bunny = $bunny;
     }
 
-    public function openModal()
+    public function openModal($postId = null)
     {
         $this->resetForm();
+
+        // 🔥 Array အနေဖြင့် ပါလာပါက စစ်ဆေးယူခြင်း
+        if (is_array($postId)) {
+            $postId = $postId['postId'] ?? null;
+        }
+
+        // 🔥 Edit Mode: Post ID ပါလာပါက Data ဆွဲထုတ်ပြီး Form တွင် ဖြည့်ပေးမည်
+        if ($postId) {
+            $post = Post::find($postId);
+            if ($post) {
+                $this->postId = $post->id;
+                $this->title = $post->title;
+                $this->content = $post->content;
+                $this->description = $post->description;
+                $this->privacy = $post->privacy ?? 'public';
+                $this->category = $post->category ?? '';
+                $this->is_mature = (bool) $post->is_mature;
+            }
+        }
+
         $this->showModal = true;
     }
 
@@ -56,6 +77,7 @@ class CreatePost extends Component
 
     public function resetForm()
     {
+        $this->postId = null; // ✅ Reset လုပ်ချိန်တွင် Post ID ပါ ရှင်းထုတ်မည်
         $this->title = '';
         $this->content = '';
         $this->description = '';
@@ -92,15 +114,27 @@ class CreatePost extends Component
         }
 
         try {
-            $post = new Post();
-            $post->user_id = Auth::id();
+            // 🔥 Edit Mode (အဟောင်းပြင်ခြင်း) သို့မဟုတ် Create Mode (အသစ်တင်ခြင်း) ခွဲခြားခြင်း
+            $post = $this->postId ? Post::find($this->postId) : new Post();
+
+            if (!$post) {
+                $post = new Post();
+            }
+
+            if (!$post->exists) {
+                $post->user_id = Auth::id();
+            }
+
             $post->title = $this->title;
             $post->content = $this->content ?? '';
             $post->description = $this->description;
             $post->privacy = $this->privacy;
             $post->category = $this->category;
             $post->is_mature = $this->is_mature ? true : false;
-            $post->video_status = 'pending';
+            
+            if (!$post->exists) {
+                $post->video_status = 'pending';
+            }
 
             // 🔥 Image Upload - array ဖြစ်နေရင် ပြင်ဆင်
             if ($this->image) {
@@ -146,16 +180,16 @@ class CreatePost extends Component
 
             $post->save();
 
-            if ($post->video_path) {
+            if ($this->video && $post->video_path) {
                 ProcessVideoJob::dispatch($post);
             }
 
             $this->dispatch('post-created');
-            $this->resetForm();
+            $this->closeModal(); // ✅ Save ပြီးရင် Modal ပိတ်ပြီး Form Reset လုပ်မည်
 
         } catch (\Exception $e) {
-            Log::error('Error creating post: ' . $e->getMessage());
-            $this->errorMessage = 'Failed to create post.';
+            Log::error('Error creating/updating post: ' . $e->getMessage());
+            $this->errorMessage = 'Failed to save post.';
             $this->showModal = true;
         }
     }

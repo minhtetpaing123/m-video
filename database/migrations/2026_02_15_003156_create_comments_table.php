@@ -1,5 +1,4 @@
 <?php
-// database/migrations/xxxx_create_comments_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -13,6 +12,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('post_id')->constrained()->onDelete('cascade');
+            
+            // ✅ Reply / Nested Comments အတွက် parent_id ဖြည့်စွက်ထားပါသည်
+            $table->foreignId('parent_id')->nullable()->constrained('comments')->onDelete('cascade');
+            
             $table->text('content');
             $table->timestamps();
         });

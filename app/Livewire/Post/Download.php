@@ -6,7 +6,7 @@ use App\Models\Post;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 
-#[Layout('layouts.home-layout')]
+#[Layout('livewire.layout.home-layout')]
 class Download extends Component
 {
     public $post;

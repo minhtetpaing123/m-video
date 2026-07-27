@@ -2,13 +2,12 @@
     {{-- ============================================ --}}
     {{-- VIDEO CONTENT --}}
     {{-- ============================================ --}}
-    <div class="w-full px-2 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="w-full min-h-screen"
+         style="background: var(--bg-primary); color: var(--text-primary);">
+        <div class="max-w-4xl mx-auto">
             
-            {{-- MAIN CONTENT --}}
-            <div class="lg:col-span-2">
-                
-                {{-- VIDEO PLAYER --}}
+            {{-- VIDEO PLAYER --}}
+            <div class="w-full bg-black">
                 @if($post->video_cdn_url)
                     <div class="block w-full overflow-hidden clear-both">
                         <x-common.video-player 
@@ -21,184 +20,219 @@
                             :allow_download="false"
                         />
                     </div>
-                    
-                @elseif($post->link)
-                    @php
-                        $embedUrl = null;
-                        $linkDomain = parse_url($post->link, PHP_URL_HOST);
-                        $linkDomain = str_replace('www.', '', $linkDomain);
-                        if (str_contains($linkDomain, 'youtube.com') || str_contains($linkDomain, 'youtu.be')) {
-                            preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/', $post->link, $match);
-                            if (isset($match[1])) { $embedUrl = 'https://www.youtube.com/embed/' . $match[1] . '?autoplay=0&rel=0&modestbranding=1&showinfo=0&controls=1&color=white&iv_load_policy=3'; }
-                        } elseif (str_contains($linkDomain, 'vimeo.com')) {
-                            preg_match('/(?:vimeo\.com\/(?:video\/|embed\/|)|player\.vimeo\.com\/video\/)(\d+)/', $post->link, $match);
-                            if (isset($match[1])) { $embedUrl = 'https://player.vimeo.com/video/' . $match[1] . '?autoplay=0&byline=0&portrait=0&title=0&badge=0'; }
-                        } elseif (str_contains($linkDomain, 'tiktok.com')) {
-                            preg_match('/tiktok\.com\/@[\w.-]+\/video\/(\d+)/', $post->link, $match);
-                            if (isset($match[1])) { $embedUrl = 'https://www.tiktok.com/embed/v2/' . $match[1]; }
-                        } elseif (str_contains($linkDomain, 'instagram.com')) {
-                            preg_match('/instagram\.com\/(?:p|reel)\/([^\/\?]+)/', $post->link, $match);
-                            if (isset($match[1])) { $embedUrl = 'https://www.instagram.com/p/' . $match[1] . '/embed'; }
-                        }
-                    @endphp
-                    @if($embedUrl)
-                        <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;background:#000;border-radius:12px;">
-                            <iframe src="{{ $embedUrl }}" frameborder="0" allow="autoplay;fullscreen;picture-in-picture;clipboard-write;encrypted-media;web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" title="Video Player"></iframe>
-                        </div>
-                    @else
-                        <div class="bg-gray-900 rounded-xl overflow-hidden shadow-2xl border border-gray-800 p-8 text-center"><p class="text-gray-400">Video not available or unsupported link.</p></div>
-                    @endif
-                    
                 @elseif($post->image)
-                    <div class="bg-black rounded-xl overflow-hidden shadow-2xl">
+                    <div class="bg-black">
                         <img src="{{ $post->image_url }}" alt="{{ $post->title ?? 'Post image' }}" class="w-full max-h-[600px] object-contain">
                     </div>
                 @endif
-                
-                {{-- VIDEO INFO --}}
-                <div class="mt-4">
-                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-                        <h1 class="text-white text-xl md:text-2xl font-bold flex-1 min-w-0">{{ $post->title ?? $post->content ?? 'Untitled' }}</h1>
-                        @if($post->is_mature)<span style="background:#e74c3c;color:white;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;flex-shrink:0;">🔞 18+</span>@endif
-                    </div>
-                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                        <span class="text-gray-400 text-sm">👁️ {{ number_format($post->views_count ?? 0) }} views</span>
-                        @if($post->video_duration)
-                            <span class="text-gray-400 text-sm">⏱️ @php $hours = floor($post->video_duration / 3600); $minutes = floor(($post->video_duration % 3600) / 60); $seconds = $post->video_duration % 60; @endphp @if($hours > 0) {{ sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds) }} @else {{ sprintf('%02d:%02d', $minutes, $seconds) }} @endif</span>
-                        @endif
-                        @if($post->video_size)<span class="text-gray-400 text-sm">💾 {{ number_format($post->video_size / 1048576, 2) }} MB</span>@endif
-                        <span class="text-gray-400 text-sm">• {{ $post->created_at->diffForHumans() }}</span>
-                        @if($post->category)<span style="background:rgba(45,136,255,0.2);color:#2d88ff;font-size:12px;font-weight:600;padding:4px 14px;border-radius:20px;border:1px solid rgba(45,136,255,0.3);">{{ $post->category_label }}</span>@endif
-                    </div>
-                </div>
-                
-                {{-- ACTION BUTTONS --}}
-                <div class="flex items-center gap-4 mt-4 flex-wrap">
-                    @auth
-                        <button class="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full transition text-white">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
-                            <span>{{ number_format($post->likes_count ?? 0) }}</span>
-                        </button>
-                    @else
-                        <a href="{{ route('login') }}" class="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full transition text-white">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
-                            <span>{{ number_format($post->likes_count ?? 0) }}</span>
-                        </a>
-                    @endauth
-                    
-                    <button onclick="document.getElementById('comment-section').scrollIntoView({behavior:'smooth'})" class="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full transition text-white">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
-                        <span>{{ number_format($post->comments_count ?? 0) }}</span>
-                    </button>
-                    
-                    <button onclick="shareVideo()" class="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full transition text-white">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
-                        Share
-                    </button>
+            </div>
 
-                    @if($post->video_cdn_url)
-                        <a href="{{ route('video.download.page', $post->id) }}" class="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-full transition text-white">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                            Download
-                        </a>
-                    @endif
+            {{-- TITLE & CHANNEL / ACTION BAR --}}
+            <div class="p-3 sm:p-4">
+                {{-- TITLE --}}
+                <h1 class="text-base sm:text-lg font-bold leading-snug line-clamp-2"
+                    style="color: var(--text-primary);">
+                    {{ $post->title ?? $post->content ?? 'Untitled' }}
+                </h1>
 
-                    @if($post->description)
-                        <a href="{{ route('posts.description', $post->id) }}" class="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full transition text-white">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                            Info
-                        </a>
-                    @endif
-                    
-                    @auth
-                        <button id="saveBtn-{{ $post->id }}" class="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full transition text-white">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
-                            Save
-                        </button>
-                    @endauth
-                </div>
-                
-                {{-- CHANNEL INFO --}}
-                <div class="flex items-center justify-between py-4 border-y border-gray-800 mt-4">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">{{ substr($post->user->name ?? 'U', 0, 1) }}</div>
-                        <div><h3 class="text-white font-semibold">{{ $post->user->name ?? 'Unknown' }}</h3><span class="text-gray-400 text-sm">{{ number_format($post->user->subscribers_count ?? 0) }} subscribers</span></div>
+                {{-- CHANNEL INFO & LIKE BUTTON --}}
+                <div class="flex items-center justify-between mt-3 mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-red-600 text-white font-bold flex items-center justify-center text-sm flex-shrink-0">
+                            {{ substr($post->user->name ?? 'C', 0, 1) }}
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold leading-tight"
+                                style="color: var(--text-primary);">{{ $post->user->name ?? 'Cele Pop' }}</h3>
+                            <span class="text-xs"
+                                  style="color: var(--text-muted);">{{ $post->created_at->diffForHumans() }}</span>
+                        </div>
                     </div>
-                    @auth
-                        <button class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-full transition">Subscribe</button>
-                    @else
-                        <a href="{{ route('login') }}" class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-full transition">Subscribe</a>
-                    @endauth
+
+                    {{-- LIKE / DISLIKE PILL --}}
+                    <div class="flex items-center rounded-full border divide-x"
+                         style="background: var(--bg-secondary); border-color: var(--border-color);">
+                        @auth
+                            <button class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-l-full"
+                                    style="color: var(--text-secondary);">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2"/></svg>
+                                <span>{{ number_format($post->likes_count ?? 0) }}</span>
+                            </button>
+                        @else
+                            <a href="{{ route('login') }}" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-l-full"
+                               style="color: var(--text-secondary);">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2"/></svg>
+                                <span>{{ number_format($post->likes_count ?? 0) }}</span>
+                            </a>
+                        @endauth
+                        <button class="px-3 py-1.5 rounded-r-full"
+                                style="color: var(--text-secondary);">
+                            <svg class="w-4 h-4 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2"/></svg>
+                        </button>
+                    </div>
                 </div>
-                
-                {{-- DESCRIPTION --}}
-                @if($post->content)
-                    <div class="mt-4 p-4 bg-gray-800/50 rounded-xl"><p class="text-gray-300 whitespace-pre-wrap">{{ $post->content }}</p></div>
-                @endif
-                
-                {{-- COMMENTS --}}
-                <div id="comment-section" class="mt-8">
-                    <h3 class="text-white text-xl font-bold mb-4">Comments ({{ number_format($post->comments_count ?? 0) }})</h3>
+
+                {{-- ACTION ICONS ROW --}}
+                <div class="grid grid-cols-5 gap-2 text-center py-2 border-b"
+                     style="border-color: var(--border-color);">
                     
+                    {{-- Save Button --}}
                     @auth
-                        <form action="{{ route('posts.comment', $post->id) }}" method="POST" class="flex gap-3 mb-6">
-                            @csrf
-                            <div class="flex-1">
-                                <input type="text" name="comment" placeholder="Write a comment..." class="w-full bg-gray-800 text-white rounded-full px-6 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <button id="saveBtn-{{ $post->id }}" class="flex flex-col items-center justify-center gap-1 transition"
+                                style="color: var(--text-secondary);">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                                 style="background: var(--bg-secondary);">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             </div>
-                            <button type="submit" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full transition">Comment</button>
+                            <span class="text-xs font-medium" style="color: var(--text-muted);">{{ __('Save') }}</span>
+                        </button>
+                    @else
+                        <a href="{{ route('login') }}" class="flex flex-col items-center justify-center gap-1 transition"
+                           style="color: var(--text-secondary);">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                                 style="background: var(--bg-secondary);">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            </div>
+                            <span class="text-xs font-medium" style="color: var(--text-muted);">{{ __('Save') }}</span>
+                        </a>
+                    @endauth
+
+                    {{-- Info Button --}}
+                    @if($post->description)
+                        <a href="{{ route('posts.description', $post->id) }}" 
+                           class="flex flex-col items-center justify-center gap-1 transition"
+                           style="color: var(--text-secondary);">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                                 style="background: var(--bg-secondary);">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <span class="text-xs font-medium" style="color: var(--text-muted);">{{ __('Info') }}</span>
+                        </a>
+                    @else
+                        <button onclick="showToast()" 
+                                class="flex flex-col items-center justify-center gap-1 transition"
+                                style="color: var(--text-secondary);">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                                 style="background: var(--bg-secondary);">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <span class="text-xs font-medium" style="color: var(--text-muted);">{{ __('Info') }}</span>
+                        </button>
+                    @endif
+
+                    {{-- Play Audio Button --}}
+                    <button onclick="return false;" class="flex flex-col items-center justify-center gap-1 transition"
+                            style="color: var(--text-secondary);">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                             style="background: var(--bg-secondary);">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                        </div>
+                        <span class="text-xs font-medium" style="color: var(--text-muted);">{{ __('Play Audio') }}</span>
+                    </button>
+
+                    {{-- Share Button --}}
+                    <button onclick="shareVideo()" class="flex flex-col items-center justify-center gap-1 transition"
+                            style="color: var(--text-secondary);">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                                 style="background: var(--bg-secondary);">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                        </div>
+                        <span class="text-xs font-medium" style="color: var(--text-muted);">{{ __('Share') }}</span>
+                    </button>
+
+                    {{-- ✅ Download Button (ပြင်ဆင်ပြီး) --}}
+                    @if($post->video_cdn_url || $post->video_path)
+                        <a href="{{ route('video.download.page', $post->id) }}" 
+                           wire:navigate
+                           class="flex flex-col items-center justify-center gap-1 transition"
+                           style="color: var(--text-primary);">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                                 style="background: var(--bg-secondary);">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            </div>
+                            <span class="text-xs font-semibold">{{ __('Download') }}</span>
+                        </a>
+                    @else
+                        <button onclick="return false;" class="flex flex-col items-center justify-center gap-1 transition"
+                                style="color: var(--text-muted);">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                                 style="background: var(--bg-secondary);">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            </div>
+                            <span class="text-xs font-semibold">{{ __('Download') }}</span>
+                        </button>
+                    @endif
+                </div>
+
+                {{-- YOUR ADS HERE --}}
+                <div class="my-4 p-3 rounded-2xl flex items-center justify-center shadow-sm"
+                     style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                    <span class="font-bold text-sm"
+                          style="color: var(--text-muted);">{{ __('Your Ads Here') }}</span>
+                </div>
+
+                {{-- COMMENTS CARD --}}
+                <div id="comment-section" class="rounded-2xl p-3 my-4"
+                     style="background: var(--bg-secondary);">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-sm"
+                                  style="color: var(--text-primary);">{{ __('Comments') }}</span>
+                            <span class="text-xs"
+                                  style="color: var(--text-muted);">• {{ number_format($post->comments_count ?? 0) }}</span>
+                        </div>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                             style="color: var(--text-muted);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+                    </div>
+
+                    @php $firstComment = $post->comments->first(); @endphp
+                    @if($firstComment)
+                        <div class="flex items-center gap-2 text-xs"
+                             style="color: var(--text-secondary);">
+                            <div class="w-6 h-6 rounded-full bg-red-500 text-white font-bold flex items-center justify-center text-[10px] flex-shrink-0">
+                                {{ substr($firstComment->user->name ?? 'U', 0, 1) }}
+                            </div>
+                            <p class="truncate font-medium">{{ $firstComment->comment }}</p>
+                        </div>
+                    @else
+                        <p class="text-xs" style="color: var(--text-muted);">{{ __('No comments yet.') }}</p>
+                    @endif
+
+                    {{-- COMMENT INPUT BOX --}}
+                    @auth
+                        <form action="{{ route('posts.comment', $post->id) }}" method="POST" class="flex gap-2 mt-3">
+                            @csrf
+                            <input type="text" name="comment" placeholder="{{ __('Write a comment...') }}"
+                                   class="flex-1 text-xs rounded-full px-4 py-2 border focus:outline-none focus:ring-1 focus:ring-red-500"
+                                   style="background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);" required>
+                            <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-full transition">{{ __('Comment') }}</button>
                         </form>
                     @else
-                        <p class="text-gray-400 text-sm mb-6"><a href="{{ route('login') }}" class="text-blue-400 hover:underline">Login</a> to comment</p>
+                        <div class="mt-2 text-xs" style="color: var(--text-muted);">
+                            <a href="{{ route('login') }}" class="text-red-600 font-semibold hover:underline">{{ __('Login') }}</a> {{ __('to comment') }}
+                        </div>
                     @endauth
-                    
-                    <div class="space-y-4">
-                        @forelse($post->comments as $comment)
-                            <div class="flex gap-3">
-                                <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{{ substr($comment->user->name ?? 'U', 0, 1) }}</div>
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-white font-semibold text-sm">{{ $comment->user->name ?? 'Unknown' }}</span>
-                                        <span class="text-gray-500 text-xs">{{ $comment->created_at->diffForHumans() }}</span>
-                                    </div>
-                                    <p class="text-gray-300 text-sm mt-1">{{ $comment->comment }}</p>
-                                    @auth
-                                        <div class="flex items-center gap-4 mt-1">
-                                            <button class="text-gray-500 hover:text-white text-xs transition">Like</button>
-                                            <button class="text-gray-500 hover:text-white text-xs transition">Reply</button>
-                                        </div>
-                                    @endauth
-                                </div>
-                            </div>
-                        @empty
-                            <p class="text-gray-400 text-center py-8">No comments yet. Be the first to comment!</p>
-                        @endforelse
-                    </div>
                 </div>
-            </div>
-            
-            {{-- SIDEBAR --}}
-            <div class="lg:col-span-1">
-                <h3 class="text-white text-lg font-bold mb-4">Recommended</h3>
-                
-                @php
-                    $recommended = App\Models\Post::where('id', '!=', $post->id)
-                        ->where('privacy', 'public')
-                        ->where(function($q) {
-                            $q->whereNotNull('video_cdn_url')
-                              ->orWhereNotNull('link')
-                              ->orWhereNotNull('image');
-                        })
-                        ->latest()
-                        ->limit(10)
-                        ->get();
-                @endphp
-                
-                <div class="space-y-3">
-                    @forelse($recommended as $recommend)
-                        <a href="{{ route('posts.show', $recommend->id) }}" class="flex gap-3 group">
-                            <div class="w-40 flex-shrink-0">
-                                <div class="relative aspect-video bg-gray-800 rounded-lg overflow-hidden">
+
+                {{-- RECOMMENDED VIDEOS --}}
+                <div class="mt-6">
+                    @php
+                        $recommended = App\Models\Post::where('id', '!=', $post->id)
+                            ->where('privacy', 'public')
+                            ->where(function($q) {
+                                $q->whereNotNull('video_cdn_url')
+                                  ->orWhereNotNull('image');
+                            })
+                            ->latest()
+                            ->limit(10)
+                            ->get();
+                    @endphp
+
+                    <div class="space-y-4">
+                        @forelse($recommended as $recommend)
+                            <a href="{{ route('posts.show', $recommend->id) }}" class="block group">
+                                <div class="relative w-full aspect-video rounded-xl overflow-hidden shadow-sm"
+                                     style="background: var(--bg-secondary);">
                                     @if($recommend->video_thumbnail_url)
                                         <img src="{{ $recommend->video_thumbnail_url }}" alt="{{ $recommend->title ?? 'Video' }}" class="w-full h-full object-cover">
                                     @elseif($recommend->video_thumbnail)
@@ -206,23 +240,72 @@
                                     @elseif($recommend->image)
                                         <img src="{{ $recommend->image_url }}" alt="{{ $recommend->title ?? 'Image' }}" class="w-full h-full object-cover">
                                     @else
-                                        <div class="w-full h-full flex items-center justify-center text-gray-600">
-                                            <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                        <div class="w-full h-full flex items-center justify-center"
+                                             style="color: var(--text-muted);">
+                                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                                         </div>
                                     @endif
+
+                                    {{-- PLAY BUTTON OVERLAY --}}
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <div class="w-12 h-12 rounded-full bg-black/60 flex items-center justify-center text-white">
+                                            <svg class="w-6 h-6 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                        </div>
+                                    </div>
+
+                                    @if($recommend->video_duration)
+                                        <span class="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] px-1.5 py-0.5 rounded font-mono">
+                                            @php
+                                                $h = floor($recommend->video_duration / 3600);
+                                                $m = floor(($recommend->video_duration % 3600) / 60);
+                                                $s = $recommend->video_duration % 60;
+                                            @endphp
+                                            @if($h > 0) {{ sprintf('%02d:%02d:%02d', $h, $m, $s) }} @else {{ sprintf('%02d:%02d', $m, $s) }} @endif
+                                        </span>
+                                    @endif
                                 </div>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <h4 class="text-white text-sm font-medium line-clamp-2 group-hover:text-blue-400 transition">{{ $recommend->title ?? $recommend->content ?? 'Untitled' }}</h4>
-                                <p class="text-gray-400 text-xs mt-1">{{ $recommend->user->name ?? 'Unknown' }}</p>
-                                <p class="text-gray-500 text-xs">{{ number_format($recommend->views_count ?? 0) }} views</p>
-                            </div>
-                        </a>
-                    @empty
-                        <p class="text-gray-400 text-sm">No recommendations</p>
-                    @endforelse
+                                <div class="mt-2">
+                                    <h4 class="text-sm font-bold line-clamp-2 leading-snug group-hover:text-red-600 transition"
+                                        style="color: var(--text-primary);">{{ $recommend->title ?? $recommend->content ?? 'Untitled' }}</h4>
+                                </div>
+                            </a>
+                        @empty
+                            <p class="text-xs text-center py-4" style="color: var(--text-muted);">{{ __('No recommendations available') }}</p>
+                        @endforelse
+                    </div>
                 </div>
+
             </div>
+        </div>
+    </div>
+
+    {{-- ============================================ --}}
+    {{-- TOAST NOTIFICATION --}}
+    {{-- ============================================ --}}
+    <div id="toast-notification" 
+         class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-500 ease-in-out"
+         style="display: none; opacity: 0; transform: translateX(-50%) translateY(20px);">
+        <div class="flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl border"
+             style="background: var(--bg-secondary); border-color: var(--border-color);">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                 style="background: rgba(239, 68, 68, 0.15);">
+                <svg class="w-5 h-5" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div>
+                <p class="text-sm font-semibold" style="color: var(--text-primary);">
+                    {{ __('No Description') }}
+                </p>
+                <p class="text-xs" style="color: var(--text-muted);">
+                    {{ __('This video does not have a description yet.') }}
+                </p>
+            </div>
+            <button onclick="hideToast()" class="ml-2 p-1 rounded-full hover:bg-gray-700/50 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-muted);">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
         </div>
     </div>
 
@@ -232,7 +315,7 @@
     <livewire:post.floating-category-filters />
 
     {{-- ============================================ --}}
-    {{-- JAVASCRIPT (INSIDE ROOT DIV) --}}
+    {{-- JAVASCRIPT --}}
     {{-- ============================================ --}}
     <script>
     function shareVideo() {
@@ -258,6 +341,27 @@
         }
     }
 
+    function showToast() {
+        const toast = document.getElementById('toast-notification');
+        toast.style.display = 'flex';
+        setTimeout(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+        }, 50);
+        setTimeout(() => {
+            hideToast();
+        }, 4000);
+    }
+
+    function hideToast() {
+        const toast = document.getElementById('toast-notification');
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(20px)';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 500);
+    }
+
     @auth
     document.addEventListener('DOMContentLoaded', function() {
         const saveBtn = document.getElementById('saveBtn-{{ $post->id }}');
@@ -275,20 +379,18 @@
                 .then(data => {
                     if (data.saved) {
                         saveBtn.innerHTML = `
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
-                            </svg>
-                            Saved
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: var(--bg-secondary);">
+                                <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+                            </div>
+                            <span class="text-xs font-semibold text-red-600">Saved</span>
                         `;
-                        saveBtn.classList.add('text-red-500');
                     } else {
                         saveBtn.innerHTML = `
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
-                            </svg>
-                            Save
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: var(--bg-secondary);">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            </div>
+                            <span class="text-xs font-medium" style="color: var(--text-muted);">Save</span>
                         `;
-                        saveBtn.classList.remove('text-red-500');
                     }
                 })
                 .catch(() => {});

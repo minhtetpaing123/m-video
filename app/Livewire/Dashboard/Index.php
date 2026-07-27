@@ -5,8 +5,10 @@ namespace App\Livewire\Dashboard;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Layout;
 use App\Models\Post;
 
+#[Layout('livewire.layout.app')]
 class Index extends Component
 {
     use WithPagination;
@@ -31,7 +33,6 @@ class Index extends Component
     #[On('undo-delete')]
     public function undoDelete($data = null)
     {
-        // Livewire v4 Array/Object data parameter mapping
         $postId = is_array($data) ? ($data['postId'] ?? null) : $data;
 
         if ($postId) {
@@ -40,11 +41,7 @@ class Index extends Component
             if ($post) {
                 $post->restore();
                 $this->restoredPostId = $postId;
-                
-                // ⚡ Frontend AlpineJS ဆီ ပြန်ပြဖို့ ပို့ပေးမယ်
                 $this->dispatch('post-restored', postId: $postId);
-                
-                // ⚡ Success Notification ပြမယ်
                 $this->notification = [
                     'message' => 'Post restored successfully! ✅',
                     'type' => 'success',
@@ -70,14 +67,12 @@ class Index extends Component
     #[On('post-deleted')]
     public function handlePostDeleted($postId = null)
     {
-        // ⚡ ဒီနေရာမှာ စာမျက်နှာကို Reset မလုပ်သေးပါဘူး (ဒါမှ ဒေတာပျောက်မသွားဘဲ Toast က ဆက်ပေါ်နေမှာပါ)
+        // Toast ဆက်ပေါ်နေမှာပါ
     }
 
-    // 🔥 Post သစ်တင်လိုက်ရင် component ကို refresh လုပ်မယ်
     #[On('post-created')]
     public function refreshPosts()
     {
-        // 🔥 Pagination ကို reset လုပ်ပြီး ပထမစာမျက်နှာကိုပြမယ်
         $this->resetPage();
     }
 
@@ -89,6 +84,6 @@ class Index extends Component
 
         return view('livewire.dashboard.index', [
             'posts' => $posts
-        ])->layout('layouts.app');
+        ]);
     }
 }
