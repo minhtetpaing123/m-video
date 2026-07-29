@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 
 class User extends Authenticatable
 {
@@ -28,6 +30,7 @@ class User extends Authenticatable
         'cover', // ✅ Cover Photo / Video အတွက် ထည့်သွင်းပေးလိုက်ပါသည်
         'bio',
         'verified_at',
+        'last_seen_at', // ✅ Online Status အတွက်
         // Notification settings
         'email_notifications',
         'push_notifications',
@@ -57,6 +60,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'verified_at' => 'datetime',
+            'last_seen_at' => 'datetime', // ✅ Carbon casting
             // Notification settings casts
             'email_notifications' => 'boolean',
             'push_notifications' => 'boolean',
@@ -139,6 +143,163 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if this user is followed by a specific user
+     */
+    public function isFollowedBy(User $user)
+    {
+        return $this->followers()->where('follower_id', $user->id)->exists();
+    }
+
+    /**
+     * Check if this user follows a specific user
+     */
+    public function isFollowing(User $user)
+    {
+        return $this->following()->where('following_id', $user->id)->exists();
+    }
+
+    // ============================================
+    // ✅ ACCESSORS FOR FOLLOW COUNTS (အသစ်ထည့်သွင်းပေးလိုက်သည်)
+    // ============================================
+
+    /**
+     * Get followers count
+     */
+    public function getFollowersCountAttribute()
+    {
+        return $this->followers()->count();
+    }
+
+    /**
+     * Get following count
+     */
+    public function getFollowingCountAttribute()
+    {
+        return $this->following()->count();
+    }
+
+    // ============================================
+    // ✅ MUTUAL FRIENDS (အသစ်ထည့်သွင်းပေးလိုက်သည်)
+    // ============================================
+
+    /**
+     * Get mutual friends with another user
+     */
+    public function mutualFriends(User $user)
+    {
+        $myFriends = $this->friends()->pluck('friend_id');
+        $theirFriends = $user->friends()->pluck('friend_id');
+        
+        return User::whereIn('id', $myFriends)
+                   ->whereIn('id', $theirFriends)
+                   ->get();
+    }
+
+    /**
+     * Get mutual friends count with another user
+     */
+    public function mutualFriendsCount(User $user)
+    {
+        $myFriends = $this->friends()->pluck('friend_id');
+        $theirFriends = $user->friends()->pluck('friend_id');
+        
+        return User::whereIn('id', $myFriends)
+                   ->whereIn('id', $theirFriends)
+                   ->count();
+    }
+
+    // ============================================
+    // ✅ ONLINE STATUS METHODS (အသစ်ထည့်သွင်းပေးလိုက်သည်)
+    // ============================================
+
+    /**
+     * Update last seen timestamp
+     */
+    public function updateLastSeen()
+    {
+        $this->last_seen_at = now();
+        $this->save();
+    }
+
+    /**
+     * Check if user is online (Cache check သို့မဟုတ် last 5 minutes)
+     */
+    public function isOnline()
+    {
+        if (Cache::has('user-is-online-' . $this->id)) {
+            return true;
+        }
+
+        if (!$this->last_seen_at) {
+            return false;
+        }
+        return $this->last_seen_at->diffInMinutes(now()) < 5;
+    }
+
+    /**
+     * Get online status label
+     */
+    public function getOnlineStatusAttribute()
+    {
+        return $this->isOnline() ? 'online' : 'offline';
+    }
+
+    /**
+     * Get last seen property accessor for compatibility ($user->last_seen)
+     */
+    public function getLastSeenAttribute()
+    {
+        return $this->last_seen_at;
+    }
+
+    /**
+     * Get last seen human readable
+     */
+    public function getLastSeenHumanAttribute()
+    {
+        if (!$this->last_seen_at) {
+            return 'Never';
+        }
+        return $this->last_seen_at->diffForHumans();
+    }
+
+    // ============================================
+    // ✅ CHAT RELATIONSHIPS (အသစ်ထည့်သွင်းပေးလိုက်သည်)
+    // ============================================
+
+    /**
+     * Messages sent by this user
+     */
+    public function sentMessages()
+    {
+        return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    /**
+     * Messages received by this user
+     */
+    public function receivedMessages()
+    {
+        return $this->hasMany(Message::class, 'receiver_id');
+    }
+
+    /**
+     * Unread messages for this user
+     */
+    public function unreadMessages()
+    {
+        return $this->hasMany(Message::class, 'receiver_id')->where('is_read', false);
+    }
+
+    /**
+     * Unread messages count
+     */
+    public function unreadMessagesCount()
+    {
+        return $this->unreadMessages()->count();
+    }
+
+    /**
      * Notification relationships
      */
     public function notifications()
@@ -152,7 +313,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Get user's avatar URL (✅ Robust Fallback Handler)[span_1](start_span)[span_1](end_span)
+     * Get user's avatar URL (✅ Robust Fallback Handler)
      */
     public function getAvatarUrlAttribute()
     {

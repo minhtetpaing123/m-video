@@ -1,6 +1,6 @@
 <?php
 // File Path: app/Livewire/Profile/ProfileHeader.php
-// Purpose: Cover နှင့် Avatar များအား Bunny CDN URL မှန်ကန်စွာ ထုတ်ယူပြသပေးသော Livewire Component Class[span_1](start_span)[span_1](end_span)
+// Purpose: Cover နှင့် Avatar များအား Bunny CDN URL မှန်ကန်စွာ ထုတ်ယူပြသပေးသော Livewire Component Class
 
 namespace App\Livewire\Profile;
 
@@ -75,7 +75,7 @@ class ProfileHeader extends Component
             $result = $bunny->upload(file_get_contents($this->newAvatar->getRealPath()), $path);
 
             if ($result['success']) {
-                // ✅ ပုံအသစ် တင်အောင်မြင်ပါက Bunny Storage ပေါ်မှ Avatar ပုံဟောင်းအား Auto ဖျက်ထုတ်ခြင်း[span_2](start_span)[span_2](end_span)
+                // ✅ ပုံအသစ် တင်အောင်မြင်ပါက Bunny Storage ပေါ်မှ Avatar ပုံဟောင်းအား Auto ဖျက်ထုတ်ခြင်း
                 if ($this->user->avatar && !str_starts_with($this->user->avatar, 'http')) {
                     $bunny->delete($this->user->avatar);
                 }
@@ -109,7 +109,7 @@ class ProfileHeader extends Component
             $result = $bunny->upload(file_get_contents($this->newCover->getRealPath()), $path);
 
             if ($result['success']) {
-                // ✅ Cover အသစ် တင်အောင်မြင်ပါက Bunny Storage ပေါ်မှ Cover ပုံ/ဗီဒီယိုဟောင်းအား Auto ဖျက်ထုတ်ခြင်း[span_3](start_span)[span_3](end_span)
+                // ✅ Cover အသစ် တင်အောင်မြင်ပါက Bunny Storage ပေါ်မှ Cover ပုံ/ဗီဒီယိုဟောင်းအား Auto ဖျက်ထုတ်ခြင်း
                 if ($this->user->cover && !str_starts_with($this->user->cover, 'http')) {
                     $bunny->delete($this->user->cover);
                 }
@@ -136,7 +136,7 @@ class ProfileHeader extends Component
             return $this->user->avatar;
         }
 
-        // env သို့မဟုတ် config မှ CDN URL ရယူခြင်း[span_4](start_span)[span_4](end_span)
+        // env သို့မဟုတ် config မှ CDN URL ရယူခြင်း
         $cdnUrl = env('BUNNY_CDN_URL') ?? config('bunny.cdn_url');
         
         if ($cdnUrl) {
@@ -157,7 +157,7 @@ class ProfileHeader extends Component
             return $this->user->cover;
         }
 
-        // env သို့မဟုတ် config မှ CDN URL ရယူခြင်း[span_5](start_span)[span_5](end_span)
+        // env သို့မဟုတ် config မှ CDN URL ရယူခြင်း
         $cdnUrl = env('BUNNY_CDN_URL') ?? config('bunny.cdn_url');
 
         if ($cdnUrl) {
@@ -165,6 +165,19 @@ class ProfileHeader extends Component
         }
 
         return asset('storage/' . $this->user->cover);
+    }
+
+    // ✅ ဒီနေရာမှာ Follower & Following Count Computed Properties ထည့်ပါ
+    #[Computed]
+    public function followersCount()
+    {
+        return $this->user->followers_count;
+    }
+
+    #[Computed]
+    public function followingCount()
+    {
+        return $this->user->following_count;
     }
 
     public function render()

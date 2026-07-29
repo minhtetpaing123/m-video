@@ -1,5 +1,4 @@
 // resources/js/app.js
-// resources/js/app.js
 
 // Import bootstrap
 import './bootstrap';
@@ -12,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initUserHeader();
 });
 
-// Your other global JavaScript below
 // Import Header JavaScript
 import './components/header';
 
@@ -22,8 +20,10 @@ import CommentSystem from './home/comment';
 // Global MVideoApp object
 window.MVideoApp = {
     version: '1.0.0',
-    
-    // Utility functions
+    onlineUserIds: new Set(),
+    offlineTimers: {}, 
+    userLastSeenTimes: {}, 
+
     showAlert: function(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = 'app-alert';
@@ -54,7 +54,6 @@ window.MVideoApp = {
         document.documentElement.classList.toggle('dark');
         localStorage.setItem('darkMode', document.documentElement.classList.contains('dark'));
         
-        // Dispatch event for other components
         document.dispatchEvent(new CustomEvent('darkMode:toggled', {
             detail: { darkMode: document.documentElement.classList.contains('dark') }
         }));
@@ -67,49 +66,193 @@ window.MVideoApp = {
         );
     },
     
-    // Show video comments
     showVideoComments: function(videoId, videoTitle) {
         if (window.CommentSystem) {
             window.CommentSystem.showComments(videoId, videoTitle);
         }
     },
     
-    // Check auth status
     checkAuthStatus: function() {
         return window.Laravel?.isAuthenticated || false;
     },
     
-    // Get current user
     getCurrentUser: function() {
         return window.Laravel?.user || null;
     },
     
-    // Initialize app
     init: function() {
         console.log('M-VIDEO App initialized');
         
-        // Check for saved dark mode preference
         if (localStorage.getItem('darkMode') === 'true') {
             document.documentElement.classList.add('dark');
         }
         
-        // Initialize Comment System
         this.initCommentSystem();
-        
-        // Import home page JS if needed
         this.importHomePageJS();
-        
-        // Setup auth event listeners
         this.setupAuthListeners();
-        
-        // Setup animations
         this.setupAnimations();
-        
-        // Setup keyboard shortcuts
         this.setupKeyboardShortcuts();
+        this.setupOnlineStatusTracker();
+        this.startLastSeenTimer();
+
+        // ✅ Livewire Morphing ဖြစ်တိုင်း Online Status အမှန်ကို Re-apply လုပ်ပေးမည်
+        document.addEventListener('livewire:initialized', () => {
+            Livewire.hook('morph.updated', () => {
+                this.reapplyOnlineStatuses();
+            });
+        });
+    },
+
+    // ✅ Real-time Presence Tracker
+    setupOnlineStatusTracker: function() {
+        if (window.Echo) {
+            window.Echo.join('online')
+                .here((users) => {
+                    console.log('Currently online users:', users);
+                    this.onlineUserIds.clear();
+                    users.forEach(user => {
+                        this.onlineUserIds.add(String(user.id));
+                        this.updateUserStatusUI(user.id, true);
+                    });
+                })
+                .joining((user) => {
+                    console.log('User came online:', user.name);
+                    const userId = String(user.id);
+                    this.onlineUserIds.add(userId);
+
+                    if (this.offlineTimers[userId]) {
+                        clearTimeout(this.offlineTimers[userId]);
+                        delete this.offlineTimers[userId];
+                    }
+
+                    this.updateUserStatusUI(user.id, true);
+                })
+                .leaving((user) => {
+                    console.log('User leaving event triggered:', user.name);
+                    const userId = String(user.id);
+                    
+                    if (this.offlineTimers[userId]) {
+                        clearTimeout(this.offlineTimers[userId]);
+                    }
+
+                    this.offlineTimers[userId] = setTimeout(() => {
+                        this.onlineUserIds.delete(userId);
+                        if (!this.onlineUserIds.has(userId)) {
+                            this.userLastSeenTimes[userId] = new Date();
+                            this.updateUserStatusUI(user.id, false);
+                        }
+                        delete this.offlineTimers[userId];
+                    }, 5000); // 5 Seconds Buffer
+                })
+                .error((error) => {
+                    console.error('Presence Channel Error:', error);
+                });
+        }
+    },
+
+    // ✅ Time Ago Calculator Function
+    formatTimeAgo: function(date) {
+        if (!date) return 'Last seen recently';
+        
+        const seconds = Math.floor((new Date() - date) / 1000);
+        
+        if (seconds < 60) {
+            return 'Last seen just now';
+        }
+        
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) {
+            return `Last seen ${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+        }
+        
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) {
+            return `Last seen ${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+        }
+        
+        const days = Math.floor(hours / 24);
+        return `Last seen ${days} ${days === 1 ? 'day' : 'days'} ago`;
+    },
+
+    // ✅ Single User Status Update Function
+    updateUserStatusUI: function(userId, isOnline) {
+        const strUserId = String(userId);
+
+        // Green Status Badge
+        const badges = document.querySelectorAll(`.user-status-badge-${strUserId}`);
+        badges.forEach(badge => {
+            if (isOnline) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        });
+
+        // Last Seen Text Element
+        const lastSeenElements = document.querySelectorAll(`.user-last-seen-${strUserId}`);
+        lastSeenElements.forEach(el => {
+            if (isOnline) {
+                el.classList.add('hidden');
+            } else {
+                el.classList.remove('hidden');
+                
+                let lastSeenDate = this.userLastSeenTimes[strUserId];
+                if (!lastSeenDate) {
+                    const dataTime = el.getAttribute('data-last-seen');
+                    if (dataTime) {
+                        lastSeenDate = new Date(dataTime);
+                        this.userLastSeenTimes[strUserId] = lastSeenDate;
+                    }
+                }
+
+                el.textContent = this.formatTimeAgo(lastSeenDate);
+            }
+        });
+    },
+
+    // ✅ Livewire DOM Refresh ဖြစ်သွားသည့်အခါ Status အမှန်များကို ပြန် Sync လုပ်ပေးမည့် Function
+    reapplyOnlineStatuses: function() {
+        const lastSeenElements = document.querySelectorAll('[class*="user-last-seen-"]');
+        
+        lastSeenElements.forEach(el => {
+            const classList = Array.from(el.classList);
+            const userClass = classList.find(c => c.startsWith('user-last-seen-'));
+            
+            if (userClass) {
+                const userId = userClass.replace('user-last-seen-', '');
+                const isOnline = this.onlineUserIds.has(String(userId));
+                this.updateUserStatusUI(userId, isOnline);
+            }
+        });
+    },
+
+    // ✅ Timer Loop to update Last Seen Text automatically
+    startLastSeenTimer: function() {
+        setInterval(() => {
+            const lastSeenElements = document.querySelectorAll('[class*="user-last-seen-"]');
+            lastSeenElements.forEach(el => {
+                if (!el.classList.contains('hidden')) {
+                    const classList = Array.from(el.classList);
+                    const userClass = classList.find(c => c.startsWith('user-last-seen-'));
+                    
+                    if (userClass) {
+                        const userId = userClass.replace('user-last-seen-', '');
+                        let lastSeenDate = this.userLastSeenTimes[userId];
+                        
+                        if (!lastSeenDate) {
+                            const dataTime = el.getAttribute('data-last-seen');
+                            if (dataTime) lastSeenDate = new Date(dataTime);
+                        }
+
+                        if (lastSeenDate) {
+                            el.textContent = this.formatTimeAgo(lastSeenDate);
+                        }
+                    }
+                }
+            });
+        }, 30000); // 30 seconds interval
     },
     
-    // Initialize comment system
     initCommentSystem: function() {
         if (CommentSystem && typeof CommentSystem.init === 'function') {
             CommentSystem.init();
@@ -117,13 +260,10 @@ window.MVideoApp = {
         }
     },
     
-    // Import home page JavaScript
     importHomePageJS: function() {
-        // Check if we're on the home page
         const isHomePage = document.querySelector('.home-video-grid') !== null;
         
         if (isHomePage) {
-            // Dynamically import home.js
             import('./home/home.js')
                 .then(module => {
                     console.log('Home page module loaded successfully');
@@ -134,13 +274,10 @@ window.MVideoApp = {
         }
     },
     
-    // Setup auth event listeners
     setupAuthListeners: function() {
-        // Listen for auth changes
         document.addEventListener('auth:changed', (e) => {
             console.log('Auth status changed:', e.detail);
             
-            // Update comment system if available
             if (window.CommentSystem) {
                 window.CommentSystem.handleAuthUpdate(
                     e.detail.authenticated, 
@@ -148,14 +285,11 @@ window.MVideoApp = {
                 );
             }
             
-            // Update UI elements
             this.updateAuthUI(e.detail.authenticated);
         });
     },
     
-    // Update UI based on auth status
     updateAuthUI: function(isAuthenticated) {
-        // Update auth buttons visibility
         const authElements = document.querySelectorAll('[data-auth-only], [data-guest-only]');
         
         authElements.forEach(element => {
@@ -172,7 +306,6 @@ window.MVideoApp = {
             }
         });
         
-        // Update comment icons
         const commentIcons = document.querySelectorAll('.comment-stat-item');
         commentIcons.forEach(icon => {
             if (isAuthenticated) {
@@ -183,47 +316,27 @@ window.MVideoApp = {
         });
     },
     
-    // Setup animations
     setupAnimations: function() {
-        // Add CSS animations if not already present
         if (!document.querySelector('#app-animations')) {
             const style = document.createElement('style');
             style.id = 'app-animations';
             style.textContent = `
                 @keyframes slideIn {
-                    from {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
                 }
-                
                 @keyframes slideOut {
-                    from {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
-                    to {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
                 }
-                
                 .video-card {
                     animation: fadeIn 0.5s ease forwards;
                     opacity: 0;
                     animation-delay: var(--delay, 0s);
                 }
-                
                 @keyframes fadeIn {
-                    to {
-                        opacity: 1;
-                    }
+                    to { opacity: 1; }
                 }
-                
                 .app-alert {
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                     font-size: 14px;
@@ -234,16 +347,13 @@ window.MVideoApp = {
         }
     },
     
-    // Setup keyboard shortcuts
     setupKeyboardShortcuts: function() {
         document.addEventListener('keydown', (e) => {
-            // Ctrl/Cmd + / to toggle dark mode
             if ((e.ctrlKey || e.metaKey) && e.key === '/') {
                 e.preventDefault();
                 this.toggleDarkMode();
             }
             
-            // Escape to close modals
             if (e.key === 'Escape') {
                 const modals = document.querySelectorAll('.video-comments-modal.active');
                 if (modals.length > 0) {
@@ -254,7 +364,6 @@ window.MVideoApp = {
                 }
             }
             
-            // Ctrl/Cmd + K to focus search (if exists)
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
                 const searchInput = document.querySelector('input[type="search"], input[placeholder*="Search"]');
@@ -265,19 +374,16 @@ window.MVideoApp = {
         });
     },
     
-    // Play video (placeholder)
     playVideo: function(videoId) {
         console.log('Playing video:', videoId);
         this.showAlert('Video playback starting...', 'info');
     },
     
-    // Like video (placeholder)
     likeVideo: function(videoId) {
         console.log('Liking video:', videoId);
         this.showAlert('Video liked!', 'success');
     },
     
-    // Share video (placeholder)
     shareVideo: function(videoId) {
         console.log('Sharing video:', videoId);
         if (navigator.share) {
@@ -290,7 +396,6 @@ window.MVideoApp = {
         }
     },
     
-    // Initialize infinite scroll for any scrollable container
     initInfiniteScroll: function(containerId, loadCallback) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -312,10 +417,8 @@ window.MVideoApp = {
     }
 };
 
-// Make CommentSystem globally available
 window.CommentSystem = CommentSystem;
 
-// Initialize app when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
         window.MVideoApp.init();
@@ -324,5 +427,4 @@ if (document.readyState === 'loading') {
     window.MVideoApp.init();
 }
 
-// Export for ES6 modules
 export default window.MVideoApp;

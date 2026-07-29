@@ -108,8 +108,20 @@
             </button>
         </div>
 
-        <!-- Footer -->
-        <div class="mt-4">
+        <!-- Footer Buttons -->
+        <div class="mt-4 flex flex-col gap-2">
+            {{-- Back Video Page Button --}}
+            <a 
+                href="{{ url('/') }}" 
+                class="w-full py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                <span>Back Video Page</span>
+            </a>
+
+            {{-- Close Button --}}
             <button 
                 @click="open = false; $wire.closeModal()" 
                 class="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-md transition-all"

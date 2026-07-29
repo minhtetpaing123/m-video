@@ -2,7 +2,9 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{-- Android Chrome Keyboard Resizing Fix --}}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+    
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'M-VIDEO') }}</title>
 
@@ -19,10 +21,9 @@
     
     @livewireStyles
 </head>
-<body>
+<body class="bg-white dark:bg-[#121212] antialiased">
     {{ $slot }}
 
-    {{-- 🔥 ဒီလိုင်းလေး ထည့်ပေးလိုက်ပါ 🔥 --}}
     <livewire:dashboard.settings-modal />
 
     @livewireScripts

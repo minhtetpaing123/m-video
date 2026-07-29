@@ -37,6 +37,8 @@ use App\Livewire\Auth\Register as RegisterLivewire;
 use App\Livewire\Auth\ForgotPassword as ForgotPasswordLivewire;
 use App\Livewire\Auth\ResetPassword as ResetPasswordLivewire;
 use App\Livewire\Settings\Setting as SettingsLivewire;
+use App\Livewire\Chat\Chat;
+use App\Livewire\Chat\ChatList;
 
 // ============================================
 // ✅ GUEST ROUTES (Livewire Auth System)
@@ -143,6 +145,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+    
+    // ✅ Chat Routes
+    Route::get('/chat', ChatList::class)->name('chat.index');
+    Route::get('/chat/{userId}', Chat::class)->name('chat.show');
     
     // Logout
     Route::post('/logout', function (Request $request) {

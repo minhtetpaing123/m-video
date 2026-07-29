@@ -4,6 +4,7 @@ use App\Http\Controllers\Post\MediaUploadController;
 use App\Http\Controllers\VideoController;
 use App\Models\Post;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;  // ✅ ဒါကို ထည့်ပါ
 
 // ============================================
 // PUBLIC ROUTES
@@ -40,3 +41,8 @@ Route::middleware('auth:sanctum')->group(function () {
 // WEB ROUTES (for redirects)
 // ============================================
 Route::post('/post/store', [MediaUploadController::class, 'store'])->name('post.store');
+
+// ✅ Broadcast Auth Route ကို ထည့်ပါ
+Route::post('/broadcasting/auth', function () {
+    return Broadcast::auth(request());
+});

@@ -13,11 +13,16 @@ class Show extends Component
 
     public $user;
     public $userId;
+    public $showFollowModal = false;
+    public $followUserId = null;
+    public $followType = 'followers';
 
     // Listen for profile updates
     protected $listeners = [
         'profileUpdated' => 'refreshProfile',
         'followUpdated' => '$refresh',
+        'openFollowList' => 'openFollowList',
+        'closeFollowList' => 'closeFollowList',
     ];
 
     public function mount($user)
@@ -30,6 +35,26 @@ class Show extends Component
     {
         $this->user->refresh();
         $this->userId = $this->user->id;
+    }
+
+    /**
+     * Open Follow List Modal
+     */
+    public function openFollowList($userId, $type = 'followers')
+    {
+        $this->followUserId = $userId;
+        $this->followType = $type;
+        $this->showFollowModal = true;
+    }
+
+    /**
+     * Close Follow List Modal
+     */
+    public function closeFollowList()
+    {
+        $this->showFollowModal = false;
+        $this->followUserId = null;
+        $this->followType = 'followers';
     }
 
     public function render()
@@ -46,6 +71,6 @@ class Show extends Component
         return view('livewire.profile.show', [
             'videos' => $videos,
             'videoCount' => $this->user->posts()->count(),
-        ])->layout('livewire.layout.app'); // 👈 dashboard/index အတိုင်း livewire.layout.app သို့ ပြောင်းထားပါသည်[span_3](start_span)[span_3](end_span)[span_4](start_span)[span_4](end_span)
+        ])->layout('livewire.layout.app');
     }
 }

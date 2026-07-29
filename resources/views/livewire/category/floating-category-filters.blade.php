@@ -1,6 +1,6 @@
 <div class="fixed bottom-24 right-4 z-50 flex flex-col items-end gap-2"
-     x-data="{ isOpen: false }"
-     x-init="$watch('isOpen', value => $wire.setIsOpen(value))">
+     x-data="{ isOpen: $wire.entangle('isOpen').live ?? false }"
+     x-cloak>
     
     {{-- Toggle Button --}}
     <button @click="isOpen = !isOpen" 
@@ -12,6 +12,7 @@
 
     {{-- Category List --}}
     <div x-show="isOpen" 
+         x-cloak
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0 transform scale-90 translate-y-2"
          x-transition:enter-end="opacity-100 transform scale-100 translate-y-0"
