@@ -5,80 +5,101 @@ namespace App\Livewire\Dashboard\Post;
 use Livewire\Component;
 use App\Models\Post;
 use App\Models\Comment;
+use App\Models\Notification;
+use App\Events\NotificationSent;
+use Illuminate\Support\Str;
 
 class CommentSection extends Component
 {
     public Post $post;
     public $commentText = '';
     public $replyText = '';
-    public $replyingToCommentId = null;
-    public $perPage = 5;
-
-    // ✅ Edit Feature အတွက် Variable များ
-    public $editingCommentId = null;
     public $editText = '';
+    public $replyingToCommentId = null;
+    public $editingCommentId = null;
+    public $perPage = 5;
+    public $hasMore = false;
 
-    protected $rules = [
-        'commentText' => 'required|min:1|max:1000',
-    ];
-
-    public function mount(Post $post)
+    /**
+     * Parent (PostFooter) ထံသို့ Modal ပိတ်ရန် Event ပေးပို့မည်
+     */
+    public function closeSection()
     {
-        $this->post = $post;
+        $this->dispatch('closeCommentsModal', postId: $this->post->id);
     }
 
-    // Main Comment တင်ရန်
     public function addComment()
     {
-        if (!auth()->check()) {
-            return redirect()->route('login');
-        }
+        if (!auth()->check()) return redirect()->route('login');
 
-        $this->validate(['commentText' => 'required|min:1|max:1000']);
+        $this->validate(['commentText' => 'required|string|max:1000']);
 
-        $this->post->comments()->create([
+        $comment = Comment::create([
+            'post_id' => $this->post->id,
             'user_id' => auth()->id(),
-            'parent_id' => null,
             'content' => $this->commentText,
         ]);
 
-        $this->post->increment('comments_count');
+        if ($this->post->user_id !== auth()->id()) {
+            $notification = Notification::create([
+                'user_id' => $this->post->user_id,
+                'from_user_id' => auth()->id(),
+                'post_id' => $this->post->id,
+                'comment_id' => $comment->id,
+                'type' => 'comment',
+                'content_snippet' => Str::limit($this->commentText, 50),
+                'is_read' => false,
+            ]);
+
+            // 🟢 Post ပိုင်ရှင်ဆီ Reverb Broadcasting ဖြင့် တိုက်ရိုက် Notification ပို့မည်
+            NotificationSent::dispatch($notification);
+        }
+
         $this->commentText = '';
+        $this->dispatch('refreshPostFooter');
     }
 
-    // Reply Box ပွင့်/ပိတ် လုပ်ရန်
     public function toggleReply($commentId)
     {
-        if ($this->replyingToCommentId === $commentId) {
-            $this->replyingToCommentId = null;
-        } else {
-            $this->replyingToCommentId = $commentId;
-            $this->replyText = '';
-        }
+        $this->replyingToCommentId = ($this->replyingToCommentId === $commentId) ? null : $commentId;
+        $this->replyText = '';
     }
 
-    // Reply တင်ရန်
-    public function addReply($parentId)
+    public function addReply($parentCommentId)
     {
-        if (!auth()->check()) {
-            return redirect()->route('login');
-        }
+        if (!auth()->check()) return redirect()->route('login');
 
-        if (empty(trim($this->replyText))) return;
+        $this->validate(['replyText' => 'required|string|max:1000']);
 
-        Comment::create([
+        $parentComment = Comment::find($parentCommentId);
+
+        $reply = Comment::create([
             'post_id' => $this->post->id,
+            'parent_id' => $parentCommentId,
             'user_id' => auth()->id(),
-            'parent_id' => $parentId,
             'content' => $this->replyText,
         ]);
 
-        $this->post->increment('comments_count');
+        if ($parentComment && $parentComment->user_id !== auth()->id()) {
+            $notification = Notification::create([
+                'user_id' => $parentComment->user_id,
+                'from_user_id' => auth()->id(),
+                'post_id' => $this->post->id,
+                'comment_id' => $reply->id,
+                'type' => 'comment_reply',
+                'content_snippet' => Str::limit($this->replyText, 50),
+                'is_read' => false,
+            ]);
+
+            // 🟢 Comment ပိုင်ရှင်ဆီ Reverb Broadcasting ဖြင့် တိုက်ရိုက် Notification ပို့မည်
+            NotificationSent::dispatch($notification);
+        }
+
         $this->replyText = '';
         $this->replyingToCommentId = null;
+        $this->dispatch('refreshPostFooter');
     }
 
-    // ✅ Comment ပြင်ရန် (Edit Mode)
     public function editComment($commentId)
     {
         $comment = Comment::find($commentId);
@@ -88,47 +109,30 @@ class CommentSection extends Component
         }
     }
 
-    // ✅ Edit ထားသည်ကို သိမ်းဆည်းရန် (Update)
     public function updateComment($commentId)
     {
-        $this->validate(['editText' => 'required|min:1|max:1000']);
-
         $comment = Comment::find($commentId);
         if ($comment && $comment->user_id === auth()->id()) {
-            $comment->update([
-                'content' => $this->editText,
-            ]);
+            $comment->update(['content' => $this->editText]);
+            $this->cancelEdit();
         }
-
-        $this->editingCommentId = null;
-        $this->editText = '';
     }
 
-    // ✅ Edit Mode ပယ်ဖျက်ရန်
     public function cancelEdit()
     {
         $this->editingCommentId = null;
         $this->editText = '';
     }
 
-    // ✅ Comment ဖျက်ရန် (Delete)
     public function deleteComment($commentId)
     {
         $comment = Comment::find($commentId);
-        
-        // Comment ပိုင်ရှင် (သို့) Post ပိုင်ရှင်ဖြစ်ပါက ဖျက်ခွင့်ပေးမည်
         if ($comment && ($comment->user_id === auth()->id() || $this->post->user_id === auth()->id())) {
-            
-            // Sub-replies များရှိပါက ထို Count များကိုပါ တွက်ချက်လျှော့ချမည်
-            $repliesCount = $comment->replies()->count();
             $comment->delete();
-
-            // Comment Count ကို decrement လုပ်မည်
-            $this->post->decrement('comments_count', 1 + $repliesCount);
+            $this->dispatch('refreshPostFooter');
         }
     }
 
-    // Comment တွေ ပိုမို ကြည့်ရန်
     public function loadMore()
     {
         $this->perPage += 5;
@@ -136,18 +140,18 @@ class CommentSection extends Component
 
     public function render()
     {
-        $comments = $this->post->comments()
+        $allComments = Comment::where('post_id', $this->post->id)
             ->whereNull('parent_id')
             ->with(['user', 'replies.user'])
             ->latest()
-            ->take($this->perPage)
+            ->take($this->perPage + 1)
             ->get();
 
-        $totalParentComments = $this->post->comments()->whereNull('parent_id')->count();
+        $this->hasMore = $allComments->count() > $this->perPage;
+        $comments = $allComments->take($this->perPage);
 
         return view('livewire.dashboard.post.comment-section', [
-            'comments' => $comments,
-            'hasMore' => $totalParentComments > $this->perPage
+            'comments' => $comments
         ]);
     }
 }

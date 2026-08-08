@@ -27,6 +27,7 @@
                 <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100">Display Settings</h3>
             </div>
 
+            {{-- Modal ပိတ်ရန် ✕ Button --}}
             <button 
                 @click="open = false; $wire.closeModal()" 
                 class="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -110,7 +111,7 @@
 
         <!-- Footer Buttons -->
         <div class="mt-4 flex flex-col gap-2">
-            {{-- Back Video Page Button --}}
+            {{-- Video Page သို့ ထွက်မည့် Button --}}
             <a 
                 href="{{ url('/') }}" 
                 class="w-full py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
@@ -121,7 +122,7 @@
                 <span>Back Video Page</span>
             </a>
 
-            {{-- Close Button --}}
+            {{-- Modal ပိတ်ရုံသက်သက်ဖြစ်သည့် Close Button --}}
             <button 
                 @click="open = false; $wire.closeModal()" 
                 class="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-md transition-all"

@@ -19,6 +19,7 @@
     },
     "dependencies": {
         "dropzone": "^6.0.0-beta.2",
+        "firebase": "^12.17.0",
         "laravel-echo": "^2.4.0",
         "pusher-js": "^8.6.0"
     }

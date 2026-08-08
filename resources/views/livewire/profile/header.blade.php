@@ -9,35 +9,35 @@
         <div class="avatar-ring flex-shrink-0">
             <img src="{{ $user->avatar ? asset('storage/'.$user->avatar) : asset('default-avatar.png') }}" 
                  alt="Avatar"
-                 class="w-28 h-28 rounded-full object-cover border-2 border-white/10">
+                 class="w-28 h-28 rounded-full object-cover border-2 border-gray-200 dark:border-white/10">
         </div>
 
         {{-- User Info --}}
         <div class="flex-1 text-center md:text-left">
-            <h1 class="text-3xl md:text-4xl font-extrabold glow-text">{{ $user->name }}</h1>
-            <p class="text-gray-400 text-sm mt-1">@ {{ $user->username ?? 'user' }}</p>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-gray-100 glow-text">{{ $user->name }}</h1>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">@ {{ $user->username ?? 'user' }}</p>
             
             {{-- Bio with real-time edit --}}
-            <p class="text-gray-300 mt-2 max-w-md mx-auto md:mx-0">
+            <p class="text-gray-600 dark:text-gray-300 mt-2 max-w-md mx-auto md:mx-0">
                 {{ $user->bio ?? 'No bio yet' }}
             </p>
             
             {{-- Stats --}}
-            <div class="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-3 text-sm text-gray-400">
+            <div class="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-3 text-sm text-gray-500 dark:text-gray-400">
                 <span class="flex items-center gap-1">
-                    <i class="fas fa-video text-blue-400"></i> 
+                    <i class="fas fa-video text-blue-500 dark:text-blue-400"></i> 
                     <span wire:loading.remove>{{ $videoCount }}</span>
                     <span wire:loading>...</span>
                     Videos
                 </span>
                 <span class="flex items-center gap-1">
-                    <i class="fas fa-users text-purple-400"></i>
+                    <i class="fas fa-users text-purple-500 dark:text-purple-400"></i>
                     <span wire:loading.remove>{{ $followersCount }}</span>
                     <span wire:loading>...</span>
                     Followers
                 </span>
                 <span>
-                    <i class="fas fa-calendar-alt text-purple-400 mr-1"></i> 
+                    <i class="fas fa-calendar-alt text-purple-500 dark:text-purple-400 mr-1"></i> 
                     Joined {{ $user->created_at->format('M Y') }}
                 </span>
             </div>
@@ -51,7 +51,7 @@
                     <button wire:click="toggleFollow" 
                             class="px-6 py-2.5 rounded-full transition duration-300 text-sm font-medium
                                    {{ $isFollowing 
-                                       ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                                       ? 'bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white' 
                                        : 'bg-blue-600 hover:bg-blue-700 text-white' }}">
                         <span wire:loading.remove>
                             {{ $isFollowing ? '✓ Following' : '+ Follow' }}
@@ -65,7 +65,7 @@
             @auth
                 @if(auth()->id() == $user->id)
                     <a href="{{ route('profile.settings') }}" 
-                       class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition duration-300 border border-white/10 text-sm font-medium">
+                       class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white rounded-full transition duration-300 border border-gray-200 dark:border-white/10 text-sm font-medium">
                         <i class="fas fa-pen"></i>
                         Edit Profile
                     </a>

@@ -3,52 +3,107 @@
 namespace App\Livewire\Dashboard\Post;
 
 use Livewire\Component;
+use Livewire\Attributes\On;
 use App\Models\Post;
+use App\Models\Notification;
+use App\Events\NotificationSent;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 class PostFooter extends Component
 {
     public Post $post;
-    public $isLiked = false;
-    public $userReaction = null; // ✅ User ပေးထားသည့် reaction အမျိုးအစားကို မှတ်ရန်
-    public $likesCount = 0;
-    public $commentsCount = 0;
-    public $sharesCount = 0;
-    public $viewsCount = 0; // ✅ View Count property ထည့်သွင်းခြင်း
+    public bool $isLiked = false;
+    public ?string $userReaction = null;
+    public int $likesCount = 0;
+    public int $commentsCount = 0;
+    public int $sharesCount = 0;
+    public int $viewsCount = 0;
+    public array $topReactions = [];
     
-    // ✅ Comment Box ပွင့်/ပိတ် ထိန်းချုပ်ရန် state
-    public $showComments = false;
+    public bool $showComments = false;
 
     public function mount(Post $post)
     {
         $this->post = $post;
-        $this->likesCount = $post->likes_count ?? 0;
-        $this->commentsCount = $post->comments_count ?? 0;
-        $this->sharesCount = $post->shares_count ?? 0;
-        $this->viewsCount = $post->views_count ?? 0; // ✅ Database မှ views_count ကို ယူမည်[span_0](start_span)[span_0](end_span)
+        
+        $this->commentsCount = $post->comments_count ?? $post->comments()->count();
+        
+        // Database တွင် shares table ရှိပါက Unique User Count ကိုယူမည်၊ မဟုတ်ပါက post ရဲ့ shares_count ကိုယူမည်
+        if (Schema::hasTable('shares')) {
+            $this->sharesCount = DB::table('shares')->where('post_id', $post->id)->distinct('user_id')->count('user_id');
+        } else {
+            $this->sharesCount = $post->shares_count ?? 0;
+        }
 
+        $this->viewsCount = $post->views_count ?? 0;
+
+        $this->refreshReactionData();
+    }
+
+    protected function refreshReactionData()
+    {
+        // Total Likes Count
+        $this->likesCount = $this->post->reactions()->count();
+
+        // Get Top 2 Most Popular Reaction Types
+        $this->topReactions = $this->post->reactions()
+            ->select('type', DB::raw('count(*) as total'))
+            ->groupBy('type')
+            ->orderByDesc('total')
+            ->limit(2)
+            ->pluck('type')
+            ->toArray();
+
+        // Check Active User's Reaction
         if (auth()->check()) {
             $existingReaction = $this->post->reactions()->where('user_id', auth()->id())->first();
             if ($existingReaction) {
                 $this->isLiked = true;
-                $this->userReaction = $existingReaction->type; // ✅ database ထဲက type ကို ယူမည်[span_1](start_span)[span_1](end_span)
+                $this->userReaction = $existingReaction->type;
             } else {
                 $this->isLiked = false;
                 $this->userReaction = null;
             }
+        } else {
+            $this->isLiked = false;
+            $this->userReaction = null;
         }
+    }
+
+    #[On('toggleComments')]
+    #[On('closeCommentsModal')]
+    public function toggleComments()
+    {
+        $this->showComments = !$this->showComments;
+    }
+
+    #[On('openCommentsFromNoti')]
+    public function openCommentsFromNoti()
+    {
+        $this->showComments = true;
+    }
+
+    public function setReaction($type = 'like')
+    {
+        $this->react($type);
     }
 
     public function toggleLike()
     {
-        // ပုံမှန် Like ခလုတ်ကို နှိပ်လျှင် 'like' ဖြင့် လုပ်ဆောင်ရန်[span_2](start_span)[span_2](end_span)
-        $this->react('like');
+        $type = $this->userReaction ?? 'like';
+        $this->react($type);
     }
 
-    // ✅ Emoji Reactions များအတွက် Method အသစ်[span_3](start_span)[span_3](end_span)
     public function react($type)
     {
         if (!auth()->check()) {
             return redirect()->route('login');
+        }
+
+        $allowedTypes = ['like', 'love', 'care', 'haha', 'wow', 'sad', 'angry'];
+        if (!in_array($type, $allowedTypes)) {
+            $type = 'like';
         }
 
         $userId = auth()->id();
@@ -56,41 +111,111 @@ class PostFooter extends Component
 
         if ($existingReaction) {
             if ($existingReaction->type === $type) {
-                // တူညီသော reaction ကို ထပ်နှိပ်လျှင် ဖျက်မည် (Unlike)[span_4](start_span)[span_4](end_span)
+                // Remove Reaction
                 $existingReaction->delete();
-                $this->isLiked = false;
-                $this->userReaction = null;
-                $this->likesCount = max(0, $this->likesCount - 1);
+
+                Notification::where('user_id', $this->post->user_id)
+                    ->where('from_user_id', $userId)
+                    ->where('post_id', $this->post->id)
+                    ->where('type', 'reaction')
+                    ->delete();
             } else {
-                // Reaction အမျိုးအစား ပြောင်းလဲလျှင် Update လုပ်မည်[span_5](start_span)[span_5](end_span)
+                // Update Reaction Type
                 $existingReaction->update(['type' => $type]);
-                $this->isLiked = true;
-                $this->userReaction = $type;
+                $this->sendNotification('reaction', $type);
             }
         } else {
-            // အသစ်ထည့်မည်[span_6](start_span)[span_6](end_span)
+            // New Reaction
             $this->post->reactions()->create([
                 'user_id' => $userId,
+                'post_id' => $this->post->id,
+                'comment_id' => null,
                 'type' => $type
             ]);
-            $this->isLiked = true;
-            $this->userReaction = $type;
-            $this->likesCount++;
+
+            $this->sendNotification('reaction', $type);
         }
 
-        $this->post->update(['likes_count' => $this->likesCount]);
+        // Database logic sync & reload component state
+        if (Schema::hasColumn('posts', 'likes_count')) {
+            $this->post->update(['likes_count' => $this->post->reactions()->count()]);
+        }
+
+        $this->refreshReactionData();
     }
 
-    // ✅ Comment Button နှိပ်လိုက်ရင် ပွင့်/ပိတ် လုပ်ပေးမည့် Method[span_7](start_span)[span_7](end_span)
-    public function toggleComments()
+    protected function sendNotification($actionType = 'reaction', $reactionType = null)
     {
-        $this->showComments = !$this->showComments;
+        if ($this->post->user_id === auth()->id()) {
+            return;
+        }
+
+        $notification = Notification::updateOrCreate(
+            [
+                'user_id'      => $this->post->user_id,
+                'from_user_id' => auth()->id(),
+                'post_id'      => $this->post->id,
+                'type'         => $actionType,
+            ],
+            [
+                'reaction_type' => $reactionType,
+                'action_url'    => route('posts.show', $this->post->id),
+                'is_read'       => false,
+            ]
+        );
+
+        // 🟢 Post ပိုင်ရှင်ဆီ Reverb Broadcasting ဖြင့် တိုက်ရိုက် Notification ပို့မည်
+        NotificationSent::dispatch($notification);
     }
 
     public function sharePost()
     {
-        $this->sharesCount++;
-        $this->post->update(['shares_count' => $this->sharesCount]);
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+
+        $userId = auth()->id();
+
+        // shares table ရှိလျှင် User တစ်ယောက်လျှင် ၁ ခါသာ Record ဆောက်မည်
+        if (Schema::hasTable('shares')) {
+            $alreadyShared = DB::table('shares')
+                ->where('post_id', $this->post->id)
+                ->where('user_id', $userId)
+                ->exists();
+
+            if (!$alreadyShared) {
+                DB::table('shares')->insert([
+                    'post_id' => $this->post->id,
+                    'user_id' => $userId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                // Unique Share Count ကို ပြန်တွက်မည်
+                $this->sharesCount = DB::table('shares')->where('post_id', $this->post->id)->distinct('user_id')->count('user_id');
+
+                if (Schema::hasColumn('posts', 'shares_count')) {
+                    $this->post->update(['shares_count' => $this->sharesCount]);
+                }
+
+                $this->sendNotification('share');
+            }
+        } else {
+            // shares table မရှိသေးပါကလည်း User Session / Cache ဖြင့် ၁ ခါပဲ တိုးအောင် ထိန်းထားမည်
+            $sessionKey = 'shared_post_' . $this->post->id . '_' . $userId;
+            
+            if (!session()->has($sessionKey)) {
+                session()->put($sessionKey, true);
+                
+                $this->sharesCount++;
+
+                if (Schema::hasColumn('posts', 'shares_count')) {
+                    $this->post->update(['shares_count' => $this->sharesCount]);
+                }
+
+                $this->sendNotification('share');
+            }
+        }
 
         $this->dispatch('notify', [
             'message' => 'Post shared successfully! 🔗',

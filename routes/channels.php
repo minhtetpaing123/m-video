@@ -49,3 +49,8 @@ Broadcast::channel('chat', function ($user) {
     }
     return false;
 });
+
+// 🟢 Notification Channel (Private - Facebook Like Real-time Sound Noti)
+Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
+    return (int) $user->id === (int) $id;
+});

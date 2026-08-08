@@ -13,10 +13,22 @@ class Chat extends Component
     public $message = '';
     public $messages = [];
 
-    protected $listeners = [
-        'echo:chat.{user.id},message-sent' => 'loadMessagesAndScroll',
-        'refreshChat' => 'loadMessagesAndScroll',
-    ];
+    // 💡 Livewire Dynamic Listeners
+    public function getListeners()
+    {
+        $authId = auth()->id();
+        $userId = $this->user ? $this->user->id : null;
+
+        return [
+            "echo:chat.{$userId},message-sent" => 'loadMessagesAndScroll',
+            'refreshChat' => 'loadMessagesAndScroll',
+            
+            // 🔔 Chat Page ရောက်နေချိန် အခြား Like/Comment/Message Push Notification များ မိစေရန် Private Channel Listener ထည့်သွင်းခြင်း
+            "echo-private:App.Models.User.{$authId},NotificationSent" => 'handleIncomingNotification',
+            "echo-private:App.Models.User.{$authId},.NotificationSent" => 'handleIncomingNotification',
+            "echo-private:App.Models.User.{$authId},Illuminate\\Notifications\\Events\\BroadcastNotificationCreated" => 'handleIncomingNotification',
+        ];
+    }
 
     public function mount($userId)
     {
@@ -63,6 +75,19 @@ class Chat extends Component
         $this->dispatch('message-sent-scroll');
     }
 
+    // 🔔 Chat Page ရောက်နေစဉ် Notification ဝင်လာပါက Noti Pop-up တက်စေမည့် Handler
+    public function handleIncomingNotification($event = null)
+    {
+        $this->dispatch('play-notification-sound');
+        
+        $this->dispatch('noti-received', [
+            'title' => $event['title'] ?? $event['data']['title'] ?? 'အကြောင်းကြားစာ အသစ်',
+            'message' => $event['message'] ?? $event['body'] ?? $event['data']['message'] ?? 'တစ်စုံတစ်ခု ပြုလုပ်ခဲ့ပါသည်။',
+            'url' => $event['url'] ?? $event['data']['url'] ?? '/notifications',
+            'icon' => $event['icon'] ?? $event['data']['icon'] ?? '/favicon.ico'
+        ]);
+    }
+
     public function sendMessage()
     {
         if (empty(trim($this->message))) {
@@ -75,7 +100,18 @@ class Chat extends Component
             'message' => $this->message,
         ]);
 
+        // 1️⃣ မူလ Chat Event Broadcast လုပ်ခြင်း
         broadcast(new MessageSent($message));
+
+        // 2️⃣ 🔥 စာလက်ခံရရှိသူ (Receiver) ၏ ဖုန်းထဲသို့ Push Pop-up တက်စေရန် Notification Event လွှတ်ပေးခြင်း
+        if (class_exists('\App\Events\NotificationSent')) {
+            broadcast(new \App\Events\NotificationSent(
+                $this->user->id,
+                auth()->user()->name ?? 'New Message',
+                $this->message,
+                route('chat', ['userId' => auth()->id()])
+            ));
+        }
 
         $this->message = '';
         $this->loadMessages();

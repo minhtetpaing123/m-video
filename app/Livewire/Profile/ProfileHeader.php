@@ -1,6 +1,5 @@
 <?php
 // File Path: app/Livewire/Profile/ProfileHeader.php
-// Purpose: Cover နှင့် Avatar များအား Bunny CDN URL မှန်ကန်စွာ ထုတ်ယူပြသပေးသော Livewire Component Class
 
 namespace App\Livewire\Profile;
 
@@ -8,6 +7,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\Attributes\Computed;
 use App\Models\User;
+use App\Models\Notification;
 use App\Services\BunnyStorageService;
 
 class ProfileHeader extends Component
@@ -17,26 +17,23 @@ class ProfileHeader extends Component
     public User $user; 
     public $newAvatar;
     public $newCover;
-    public $isFollowing = false; // ✅ Follow အခြေအနေ ထိန်းရန်
+    public $isFollowing = false;
 
     public function mount(User $user)
     {
         $this->user = $user;
-        $this->checkFollowStatus(); // ✅ စတင်ချိန်တွင် Follow ပြီးသားလား စစ်ဆေးရန်
+        $this->checkFollowStatus();
     }
 
-    /**
-     * ✅ Follow Status စစ်ဆေးသည့် Method
-     */
     public function checkFollowStatus()
     {
         if (auth()->check()) {
-            $this->isFollowing = auth()->user()->following()->where('following_id', $this->user->id)->exists();
+            $this->isFollowing = auth()->user()->isFollowing($this->user);
         }
     }
 
     /**
-     * ✅ Follow / Unfollow ပြုလုပ်သည့် Method
+     * Follow / Unfollow logic with Unfollow Notification
      */
     public function toggleFollow()
     {
@@ -44,22 +41,64 @@ class ProfileHeader extends Component
             return redirect()->route('login');
         }
 
-        if (auth()->id() === $this->user->id) {
+        $currentUser = auth()->user();
+
+        if ($currentUser->id === $this->user->id) {
             return;
         }
 
         if ($this->isFollowing) {
-            auth()->user()->following()->detach($this->user->id);
+            // Unfollow Logic
+            $currentUser->following()->detach($this->user->id);
             $this->isFollowing = false;
+
+            // 🟢 Unfollow Noti
+            Notification::updateOrCreate(
+                [
+                    'user_id'      => $this->user->id,
+                    'from_user_id' => $currentUser->id,
+                    'type'         => 'unfollow',
+                ],
+                [
+                    'title'           => 'Unfollowed',
+                    'content_snippet' => $currentUser->name . ' unfollowed you.',
+                    'action_url'      => route('profile.show', $currentUser->id),
+                    'image_url'       => $currentUser->avatar_url ?? null,
+                    'is_read'         => false,
+                    'created_at'      => now(),
+                ]
+            );
         } else {
-            auth()->user()->following()->attach($this->user->id);
+            // Follow Logic
+            $currentUser->following()->attach($this->user->id);
             $this->isFollowing = true;
+
+            // 🟢 Follow Noti with action_type = 'follow'
+            Notification::updateOrCreate(
+                [
+                    'user_id'      => $this->user->id,
+                    'from_user_id' => $currentUser->id,
+                    'type'         => 'follow',
+                ],
+                [
+                    'title'           => 'New Follower',
+                    'content_snippet' => $currentUser->name . ' started following you.',
+                    'action_url'      => route('profile.show', $currentUser->id),
+                    'image_url'       => $currentUser->avatar_url ?? null,
+                    'is_read'         => false,
+                    'created_at'      => now(),
+                    'action_type'     => 'follow',
+                    'action_data'     => json_encode([
+                        'user_id' => $currentUser->id
+                    ]),
+                ]
+            );
         }
+
+        $this->dispatch('notificationCountUpdated');
+        $this->user->refresh();
     }
 
-    /**
-     * Avatar Upload (Image / GIF)
-     */
     public function updatedNewAvatar()
     {
         $this->validate([
@@ -75,7 +114,6 @@ class ProfileHeader extends Component
             $result = $bunny->upload(file_get_contents($this->newAvatar->getRealPath()), $path);
 
             if ($result['success']) {
-                // ✅ ပုံအသစ် တင်အောင်မြင်ပါက Bunny Storage ပေါ်မှ Avatar ပုံဟောင်းအား Auto ဖျက်ထုတ်ခြင်း
                 if ($this->user->avatar && !str_starts_with($this->user->avatar, 'http')) {
                     $bunny->delete($this->user->avatar);
                 }
@@ -91,13 +129,10 @@ class ProfileHeader extends Component
         $this->reset('newAvatar');
     }
 
-    /**
-     * Cover Upload (Image, GIF, Video - mp4, webm, mov)
-     */
     public function updatedNewCover()
     {
         $this->validate([
-            'newCover' => 'required|file|mimetypes:image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm|max:20480',
+            'newCover' => 'required|file|mimetypes:image/jpeg,image/png,image/gif,image/webm,video/mp4,video/quicktime|max:20480',
         ]);
 
         try {
@@ -109,7 +144,6 @@ class ProfileHeader extends Component
             $result = $bunny->upload(file_get_contents($this->newCover->getRealPath()), $path);
 
             if ($result['success']) {
-                // ✅ Cover အသစ် တင်အောင်မြင်ပါက Bunny Storage ပေါ်မှ Cover ပုံ/ဗီဒီယိုဟောင်းအား Auto ဖျက်ထုတ်ခြင်း
                 if ($this->user->cover && !str_starts_with($this->user->cover, 'http')) {
                     $bunny->delete($this->user->cover);
                 }
@@ -136,7 +170,6 @@ class ProfileHeader extends Component
             return $this->user->avatar;
         }
 
-        // env သို့မဟုတ် config မှ CDN URL ရယူခြင်း
         $cdnUrl = env('BUNNY_CDN_URL') ?? config('bunny.cdn_url');
         
         if ($cdnUrl) {
@@ -157,7 +190,6 @@ class ProfileHeader extends Component
             return $this->user->cover;
         }
 
-        // env သို့မဟုတ် config မှ CDN URL ရယူခြင်း
         $cdnUrl = env('BUNNY_CDN_URL') ?? config('bunny.cdn_url');
 
         if ($cdnUrl) {
@@ -167,17 +199,16 @@ class ProfileHeader extends Component
         return asset('storage/' . $this->user->cover);
     }
 
-    // ✅ ဒီနေရာမှာ Follower & Following Count Computed Properties ထည့်ပါ
     #[Computed]
     public function followersCount()
     {
-        return $this->user->followers_count;
+        return $this->user->followers()->count();
     }
 
     #[Computed]
     public function followingCount()
     {
-        return $this->user->following_count;
+        return $this->user->following()->count();
     }
 
     public function render()

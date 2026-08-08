@@ -73,4 +73,19 @@
         window.visualViewport.addEventListener('resize', handleViewportShift);
         window.visualViewport.addEventListener('scroll', handleViewportShift);
     }
+
+    // 🟢 Chat List သို့မဟုတ် မိုဘိုင်း Noti ရောက်ရှိလာစေရန် Echo Listener
+    document.addEventListener('livewire:init', () => {
+        const currentUserId = "{{ auth()->id() }}";
+        if (typeof Echo !== 'undefined' && currentUserId) {
+            Echo.private(`chat.${currentUserId}`)
+                .listen('.message-sent', (e) => {
+                    // Chat Box အပြင်ဘက် Chat List တွင် ရှိနေပါက Noti Event စတင်ပါမည်
+                    if (typeof Livewire !== 'undefined') {
+                        Livewire.dispatch('play-notification-sound');
+                        Livewire.dispatch('refreshChatList');
+                    }
+                });
+        }
+    });
 </script>

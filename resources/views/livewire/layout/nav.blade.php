@@ -1,81 +1,97 @@
-<!-- MVideo Bottom Navigation - Facebook Style (Pure Tailwind CSS) -->
-<nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#1a1a2e]/90 dark:bg-[#1a1a2e]/90 border-t border-[#2a2a3e] backdrop-blur-xl pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:pb-2">
-    <div class="flex items-center justify-around max-w-lg mx-auto">
-        
-        {{-- Home --}}
-        <a href="{{ route('dashboard') }}" wire:navigate 
-           class="relative flex flex-col items-center justify-center min-w-[48px] sm:min-w-[60px] px-2 py-1 text-xs font-medium transition-colors duration-200 group {{ $active === 'home' ? 'text-[#2d88ff]' : 'text-gray-400 hover:text-white' }}">
-            @if($active === 'home')
-                <span class="absolute -top-[6px] left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#2d88ff] rounded-b-sm"></span>
-            @endif
-            <div class="relative w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
-                <svg viewBox="0 0 28 28" class="w-6 h-6 sm:w-7 sm:h-7 fill-current">
-                    <path d="M25.825 12.29c-.018-.019-.185-7.394-.185-7.394A1.815 1.815 0 0 0 23.824 3.5H16.5a.5.5 0 0 0-.5.5v4.75a.25.25 0 0 1-.25.25h-3.5a.25.25 0 0 1-.25-.25V4a.5.5 0 0 0-.5-.5H4.176a1.815 1.815 0 0 0-1.816 1.816c0 .122-.142 7.35-.16 7.37a1.867 1.867 0 0 0 1.45 3.21h.386c1.005.02 1.809.847 1.809 1.867v8.02c0 1.03.84 1.87 1.87 1.87h3.933a1.87 1.87 0 0 0 1.87-1.87v-5.1c0-.386.314-.7.7-.7h2.8c.386 0 .7.314.7.7v5.1c0 1.03.84 1.87 1.87 1.87h3.933a1.87 1.87 0 0 0 1.87-1.87v-8.04c0-1.02.804-1.847 1.81-1.867h.386a1.868 1.868 0 0 0 1.45-3.21z"/>
-                </svg>
-            </div>
-            <span class="text-[9px] sm:text-[10px] leading-tight mt-0.5">Home</span>
-        </a>
-
-        {{-- Friends --}}
-        <a href="/friends" wire:navigate 
-           class="relative flex flex-col items-center justify-center min-w-[48px] sm:min-w-[60px] px-2 py-1 text-xs font-medium transition-colors duration-200 group {{ $active === 'friends' ? 'text-[#2d88ff]' : 'text-gray-400 hover:text-white' }}">
-            @if($active === 'friends')
-                <span class="absolute -top-[6px] left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#2d88ff] rounded-b-sm"></span>
-            @endif
-            <div class="relative w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
-                <svg viewBox="0 0 28 28" class="w-6 h-6 sm:w-7 sm:h-7 fill-current">
-                    <path d="M10.5 4.5c-2.272 0-4.5 1.636-4.5 4v1c0 1.295.669 2.581 2.051 3.46.89.569 1.67.865 2.449 1.06v3.08c0 1.295-.773 2.55-2.468 3.46-.444.24-.804.44-1.108.7a7.368 7.368 0 0 0-.76.8c-.25.308-.664.806-1.242.806h-.017a.494.494 0 0 1-.494-.494V24c0-.613.403-1.22 1.144-1.907.8-.739 1.665-1.341 2.497-1.797.901-.498 1.633-.77 2.095-.932.203-.069.353-.105.48-.126a.757.757 0 0 1 .21-.037h3c.07 0 .138.012.203.036.126.02.274.056.474.125.463.162 1.195.434 2.096.932.832.456 1.697 1.058 2.497 1.797.74.687 1.144 1.294 1.144 1.907v.035a.494.494 0 0 1-.494.494h-.017c-.578 0-.992-.498-1.242-.806a7.38 7.38 0 0 0-.76-.8c-.304-.26-.664-.46-1.108-.7-1.695-.91-2.468-2.165-2.468-3.46v-3.08c.78-.195 1.56-.491 2.45-1.06 1.381-.88 2.05-2.166 2.05-3.46v-1c0-2.364-2.228-4-4.5-4s-4.5 1.636-4.5 4v1c0 1.295.669 2.581 2.051 3.46C12.582 11.435 13.5 10.89 13.5 10v-1.5c0-2.364-2.228-4-4.5-4z"/>
-                </svg>
-            </div>
-            <span class="text-[9px] sm:text-[10px] leading-tight mt-0.5">Friends</span>
-        </a>
-
-        {{-- Chat --}}
-        <a href="/chat" wire:navigate 
-           class="relative flex flex-col items-center justify-center min-w-[48px] sm:min-w-[60px] px-2 py-1 text-xs font-medium transition-colors duration-200 group {{ $active === 'chat' ? 'text-[#2d88ff]' : 'text-gray-400 hover:text-white' }}">
-            @if($active === 'chat')
-                <span class="absolute -top-[6px] left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#2d88ff] rounded-b-sm"></span>
-            @endif
-            <div class="relative w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
-                <svg viewBox="0 0 28 28" class="w-6 h-6 sm:w-7 sm:h-7 fill-current">
-                    <path d="M14 2C7.373 2 2 6.925 2 13c0 2.23.716 4.305 1.94 6.012L2.518 24.5a.75.75 0 0 0 .93.93l5.488-1.422C10.695 24.634 12.31 25 14 25c6.627 0 12-4.925 12-11S20.627 2 14 2zm-5 12a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
-                </svg>
-            </div>
-            <span class="text-[9px] sm:text-[10px] leading-tight mt-0.5">Chat</span>
-        </a>
-
-        {{-- Notifications --}}
-        <a href="{{ route('noti') }}" wire:navigate 
-           class="relative flex flex-col items-center justify-center min-w-[48px] sm:min-w-[60px] px-2 py-1 text-xs font-medium transition-colors duration-200 group {{ $active === 'notifications' ? 'text-[#2d88ff]' : 'text-gray-400 hover:text-white' }}">
-            @if($active === 'notifications')
-                <span class="absolute -top-[6px] left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#2d88ff] rounded-b-sm"></span>
-            @endif
-            <div class="relative w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
-                <svg viewBox="0 0 28 28" class="w-6 h-6 sm:w-7 sm:h-7 fill-current">
-                    <path d="M7.847 23.488c1.36 0 3.596-.125 6.62-.682 3.348-.623 5.016-2.718 5.437-5.568.093-.636.14-1.287.14-1.943v-1.901c0-.92.092-2.089.703-3.06.607-.972 1.756-1.79 3.695-1.49.349.053.701.12 1.054.203.434.102.834.297 1.171.572.337.274.6.62.762 1.014.163.393.22.822.163 1.246-.056.424-.226.83-.494 1.177a2.878 2.878 0 0 1-1.174.861 9.187 9.187 0 0 1-.349 1.386 9.223 9.223 0 0 1-.678 1.64c-.411.765-.941 1.456-1.575 2.05a8.842 8.842 0 0 0-2.045 1.509 8.25 8.25 0 0 1-1.376 1.044c-.42.254-.86.466-1.314.635-.656.237-1.369.366-2.126.366H7.847c-1.36 0-2.606-.487-3.564-1.294a5.206 5.206 0 0 1-1.508-2.236 5.566 5.566 0 0 1-.197-2.734c.119-.878.483-1.701 1.051-2.376a4.6 4.6 0 0 1 2.057-1.378c.665-.226 1.387-.35 2.135-.35h8.282c.115 0 .23.003.343.01a.5.5 0 0 0 .1-.984c-.119-.012-.239-.019-.359-.02h-8.282c-.866 0-1.707.135-2.49.385a5.63 5.63 0 0 0-2.518 1.691 5.708 5.708 0 0 0-1.307 2.963c-.111.821-.054 1.66.165 2.463a6.206 6.206 0 0 0 1.8 2.715c1.127 1.03 2.6 1.597 4.194 1.597z"/>
-                </svg>
-                @if($unreadCount > 0)
-                    <span class="absolute -top-1 -right-1.5 bg-[#e74c3c] text-white text-[8px] sm:text-[10px] font-bold min-w-[16px] sm:min-w-[18px] h-4 sm:h-[18px] rounded-full flex items-center justify-center px-1 border-2 border-[#1a1a2e] animate-pulse">
-                        {{ $unreadCount > 9 ? '9+' : $unreadCount }}
-                    </span>
+<div>
+    <!-- Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-[#1a1a2e]/95 border-t border-gray-200 dark:border-[#2a2a3e] backdrop-blur-xl pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:pb-2 transition-colors duration-200">
+        <div class="flex items-center justify-around max-w-lg mx-auto px-1">
+            
+            {{-- Home --}}
+            @php $isHome = request()->routeIs('dashboard') || request()->is('/') || request()->is('home'); @endphp
+            <a href="{{ route('dashboard') }}" wire:navigate 
+               class="relative flex flex-col items-center justify-center flex-1 py-1 text-xs font-medium transition-colors duration-200 group {{ $isHome ? 'text-[#2d88ff]' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white' }}">
+                @if($isHome)
+                    <span class="absolute -top-[6px] left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#2d88ff] rounded-b-sm"></span>
                 @endif
-            </div>
-            <span class="text-[9px] sm:text-[10px] leading-tight mt-0.5">Notifications</span>
-        </a>
+                <div class="relative w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
+                    <svg viewBox="0 0 28 28" class="w-6 h-6 sm:w-7 sm:h-7 fill-current">
+                        <path d="M25.825 12.29c-.018-.019-.185-7.394-.185-7.394A1.815 1.815 0 0 0 23.824 3.5H16.5a.5.5 0 0 0-.5.5v4.75a.25.25 0 0 1-.25.25h-3.5a.25.25 0 0 1-.25-.25V4a.5.5 0 0 0-.5-.5H4.176a1.815 1.815 0 0 0-1.816 1.816c0 .122-.142 7.35-.16 7.37a1.867 1.867 0 0 0 1.45 3.21h.386c1.005.02 1.809.847 1.809 1.867v8.02c0 1.03.84 1.87 1.87 1.87h3.933a1.87 1.87 0 0 0 1.87-1.87v-5.1c0-.386.314-.7.7-.7h2.8c.386 0 .7.314.7.7v5.1c0 1.03.84 1.87 1.87 1.87h3.933a1.87 1.87 0 0 0 1.87-1.87v-8.04c0-1.02.804-1.847 1.81-1.867h.386a1.868 1.868 0 0 0 1.45-3.21z"/>
+                    </svg>
+                </div>
+                <span class="text-[9px] sm:text-[10px] leading-tight mt-0.5">Home</span>
+            </a>
 
-        {{-- Profile --}}
-        <a href="{{ route('profile.show', auth()->user()) }}" wire:navigate 
-           class="relative flex flex-col items-center justify-center min-w-[48px] sm:min-w-[60px] px-2 py-1 text-xs font-medium transition-colors duration-200 group {{ $active === 'profile' ? 'text-[#2d88ff]' : 'text-gray-400 hover:text-white' }}">
-            @if($active === 'profile')
-                <span class="absolute -top-[6px] left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#2d88ff] rounded-b-sm"></span>
-            @endif
-            <div class="relative w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
-                <svg viewBox="0 0 28 28" class="w-6 h-6 sm:w-7 sm:h-7 fill-current">
-                    <path d="M14 2.042c6.76 0 12 4.952 12 11.64S20.76 25.322 14 25.322a13.091 13.091 0 0 1-3.474-.461.959.959 0 0 0-.641.047L7.5 25.959a.961.961 0 0 1-1.348-.849l-.065-2.134a.957.957 0 0 0-.322-.684A11.389 11.389 0 0 1 2 13.682C2 6.994 7.24 2.042 14 2.042zm0 2.5c-2.83 0-5.1 1.83-5.1 4.058 0 1.5.83 2.833 2.1 3.668v2.774c0 .69.56 1.25 1.25 1.25h3.5c.69 0 1.25-.56 1.25-1.25v-2.774c1.27-.835 2.1-2.168 2.1-3.668 0-2.228-2.27-4.058-5.1-4.058z"/>
-                </svg>
-            </div>
-            <span class="text-[9px] sm:text-[10px] leading-tight mt-0.5">Profile</span>
-        </a>
+            {{-- Friends --}}
+            @php $isFriends = request()->is('friends*'); @endphp
+            <a href="/friends" wire:navigate 
+               class="relative flex flex-col items-center justify-center flex-1 py-1 text-xs font-medium transition-colors duration-200 group {{ $isFriends ? 'text-[#2d88ff]' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white' }}">
+                @if($isFriends)
+                    <span class="absolute -top-[6px] left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#2d88ff] rounded-b-sm"></span>
+                @endif
+                <div class="relative w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
+                    <svg viewBox="0 0 28 28" class="w-6 h-6 sm:w-7 sm:h-7 fill-current">
+                        <path d="M10.5 4.5c-2.272 0-4.5 1.636-4.5 4v1c0 1.295.669 2.581 2.051 3.46.89.569 1.67.865 2.449 1.06v3.08c0 1.295-.773 2.55-2.468 3.46-.444.24-.804.44-1.108.7a7.368 7.368 0 0 0-.76.8c-.25.308-.664.806-1.242.806h-.017a.494.494 0 0 1-.494-.494V24c0-.613.403-1.22 1.144-1.907.8-.739 1.665-1.341 2.497-1.797.901-.498 1.633-.77 2.095-.932.203-.069.353-.105.48-.126a.757.757 0 0 1 .21-.037h3c.07 0 .138.012.203.036.126.02.274.056.474.125.463.162 1.195.434 2.096.932.832.456 1.697 1.058 2.497 1.797.74.687 1.144 1.294 1.144 1.907v.035a.494.494 0 0 1-.494.494h-.017c-.578 0-.992-.498-1.242-.806a7.38 7.38 0 0 0-.76-.8c-.304-.26-.664-.46-1.108-.7-1.695-.91-2.468-2.165-2.468-3.46v-3.08c.78-.195 1.56-.491 2.45-1.06 1.381-.88 2.05-2.166 2.05-3.46v-1c0-2.364-2.228-4-4.5-4s-4.5 1.636-4.5 4v1c0 1.295.669 2.581 2.051 3.46C12.582 11.435 13.5 10.89 13.5 10v-1.5c0-2.364-2.228-4-4.5-4z"/>
+                    </svg>
+                </div>
+                <span class="text-[9px] sm:text-[10px] leading-tight mt-0.5">Friends</span>
+            </a>
 
-    </div>
-</nav>
+            {{-- Chat --}}
+            @php 
+                $isChat = request()->is('chat*'); 
+                $unreadMessagesCount = auth()->check() 
+                    ? \App\Models\Message::where('receiver_id', auth()->id())->where('is_read', false)->count() 
+                    : 0;
+            @endphp
+            <a href="/chat" wire:navigate 
+               class="relative flex flex-col items-center justify-center flex-1 py-1 text-xs font-medium transition-colors duration-200 group {{ $isChat ? 'text-[#2d88ff]' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white' }}">
+                @if($isChat)
+                    <span class="absolute -top-[6px] left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#2d88ff] rounded-b-sm"></span>
+                @endif
+                <div class="relative w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
+                    <svg viewBox="0 0 28 28" class="w-6 h-6 sm:w-7 sm:h-7 fill-current">
+                        <path d="M14 2C7.373 2 2 6.925 2 13c0 2.23.716 4.305 1.94 6.012L2.518 24.5a.75.75 0 0 0 .93.93l5.488-1.422C10.695 24.634 12.31 25 14 25c6.627 0 12-4.925 12-11S20.627 2 14 2zm-5 12a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
+                    </svg>
+
+                    {{-- 💬 Unread Message Badge --}}
+                    @if($unreadMessagesCount > 0)
+                        <span class="absolute -top-1 -right-1.5 min-w-[18px] h-[18px] bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-md border-2 border-white dark:border-[#1a1a2e] animate-pulse">
+                            {{ $unreadMessagesCount > 99 ? '99+' : $unreadMessagesCount }}
+                        </span>
+                    @endif
+                </div>
+                <span class="text-[9px] sm:text-[10px] leading-tight mt-0.5">Chat</span>
+            </a>
+
+            {{-- Saved Posts --}}
+            @php $isSaved = request()->is('saved*') || request()->routeIs('saved*'); @endphp
+            <a href="/saved" wire:navigate 
+               class="relative flex flex-col items-center justify-center flex-1 py-1 text-xs font-medium transition-colors duration-200 group {{ $isSaved ? 'text-[#2d88ff]' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white' }}">
+                @if($isSaved)
+                    <span class="absolute -top-[6px] left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#2d88ff] rounded-b-sm"></span>
+                @endif
+                
+                <div class="relative w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" class="w-6 h-6 sm:w-7 sm:h-7 fill-current">
+                        <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z"/>
+                    </svg>
+                </div>
+
+                <span class="text-[9px] sm:text-[10px] leading-tight mt-0.5">Saved</span>
+            </a>
+
+            {{-- Profile --}}
+            @php $isProfile = request()->is('profile*'); @endphp
+            <a href="{{ auth()->check() ? route('profile.show', auth()->user()) : '#' }}" wire:navigate 
+               class="relative flex flex-col items-center justify-center flex-1 py-1 text-xs font-medium transition-colors duration-200 group {{ $isProfile ? 'text-[#2d88ff]' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white' }}">
+                @if($isProfile)
+                    <span class="absolute -top-[6px] left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#2d88ff] rounded-b-sm"></span>
+                @endif
+                <div class="relative w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
+                    <svg viewBox="0 0 28 28" class="w-6 h-6 sm:w-7 sm:h-7 fill-current">
+                        <path d="M14 2.042c6.76 0 12 4.952 12 11.64S20.76 25.322 14 25.322a13.091 13.091 0 0 1-3.474-.461.959.959 0 0 0-.641.047L7.5 25.959a.961.961 0 0 1-1.348-.849l-.065-2.134a.957.957 0 0 0-.322-.684A11.389 11.389 0 0 1 2 13.682C2 6.994 7.24 2.042 14 2.042zm0 2.5c-2.83 0-5.1 1.83-5.1 4.058 0 1.5.83 2.833 2.1 3.668v2.774c0 .69.56 1.25 1.25 1.25h3.5c.69 0 1.25-.56 1.25-1.25v-2.774c1.27-.835 2.1-2.168 2.1-3.668 0-2.228-2.27-4.058-5.1-4.058z"/>
+                    </svg>
+                </div>
+                <span class="text-[9px] sm:text-[10px] leading-tight mt-0.5">Profile</span>
+            </a>
+
+        </div>
+    </nav>
+</div>

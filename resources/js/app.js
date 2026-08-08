@@ -5,6 +5,9 @@ import './bootstrap';
 
 // Import user header module
 import { initUserHeader } from './user/user-header';
+// resources/js/app.js
+
+import './infinite-scroll.js'; // 🟢 ဒီလိုင်းလေး ဖြည့်ပေးပါ
 
 // Initialize user header
 document.addEventListener('DOMContentLoaded', () => {

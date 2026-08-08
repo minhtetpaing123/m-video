@@ -5,6 +5,7 @@ namespace App\Livewire\Chat;
 use Livewire\Component;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Models\Message;
 
 class ChatInput extends Component
@@ -23,6 +24,47 @@ class ChatInput extends Component
             'set-reply' => 'handleSetReply',
             'set-edit' => 'handleSetEdit',
         ];
+    }
+
+    // 🔴 မိမိက ထို User ကို Block ထားခြင်း ရှိ/မရှိ စစ်ဆေးခြင်း
+    public function getIBlockedUserProperty()
+    {
+        if (!Auth::check() || !$this->user) {
+            return false;
+        }
+
+        return DB::table('blocks')
+            ->where('user_id', Auth::id())
+            ->where('blocked_user_id', $this->user->id)
+            ->whereNull('unblocked_at')
+            ->exists();
+    }
+
+    // 🔴 ထို User က မိမိအား Block ထားခြင်း ရှိ/မရှိ စစ်ဆေးခြင်း
+    public function getIAmBlockedByProperty()
+    {
+        if (!Auth::check() || !$this->user) {
+            return false;
+        }
+
+        return DB::table('blocks')
+            ->where('user_id', $this->user->id)
+            ->where('blocked_user_id', Auth::id())
+            ->whereNull('unblocked_at')
+            ->exists();
+    }
+
+    // Unblock ပြုလုပ်ရန် Action
+    public function unblockUser()
+    {
+        if (!Auth::check()) return;
+
+        /** @var \App\Models\User $authUser */
+        $authUser = Auth::user();
+        $authUser->unblockUser($this->user->id);
+
+        $this->dispatch('toast', message: 'User unblocked successfully.');
+        $this->dispatch('user-blocked');
     }
 
     public function handleSetReply($messageId)
@@ -57,6 +99,12 @@ class ChatInput extends Component
     
     public function sendMessage()
     {
+        // 🔴 အချင်းချင်း Block ဖြစ်နေပါက Message ပို့ခွင့်မပြုပါ
+        if ($this->iBlockedUser || $this->iAmBlockedBy) {
+            $this->dispatch('toast', message: 'You cannot send messages in this conversation.');
+            return;
+        }
+
         $this->validate([
             'message' => 'required|string|max:1000'
         ]);

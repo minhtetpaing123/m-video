@@ -22,7 +22,7 @@ class MessageSent implements ShouldBroadcastNow
 
     public function broadcastOn()
     {
-        // ✅ Private Channel - Receiver အတွက်
+        // Private Channel - Receiver အတွက်[span_0](start_span)[span_0](end_span)
         return new PrivateChannel('chat.' . $this->message->receiver_id);
     }
 
@@ -34,13 +34,19 @@ class MessageSent implements ShouldBroadcastNow
     public function broadcastWith()
     {
         return [
-            'id' => $this->message->id,
-            'sender_id' => $this->message->sender_id,
-            'sender_name' => $this->message->sender->name,
+            // မူလ Logic များ အပြည့်အစုံ[span_1](start_span)[span_1](end_span)
+            'id'            => $this->message->id,
+            'sender_id'     => $this->message->sender_id,
+            'sender_name'   => $this->message->sender->name,
             'sender_avatar' => $this->message->sender->avatar_url,
-            'message' => $this->message->message,
-            'created_at' => $this->message->created_at->diffForHumans(),
-            'is_read' => $this->message->is_read,
+            'message'       => $this->message->message,
+            'created_at'    => $this->message->created_at->diffForHumans(),
+            'is_read'       => $this->message->is_read,
+
+            // System Push Notification အတွက် ထည့်ထားသော Data များ
+            'title'         => $this->message->sender->name,
+            'icon'          => $this->message->sender->avatar_url ?? '/favicon.ico',
+            'url'           => '/chat/' . $this->message->sender_id,
         ];
     }
 }

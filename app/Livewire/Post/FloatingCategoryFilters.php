@@ -4,15 +4,18 @@ namespace App\Livewire\Post;
 
 use Livewire\Component;
 use App\Models\Post;
-use Livewire\Attributes\On; // 👈 Livewire v4 ရဲ့ Event Listener Attribute
+use Livewire\Attributes\On;
 
 class FloatingCategoryFilters extends Component
 {
     public $selectedCategory = null;
+    public bool $showFilter = false; // Menu ပွင့်/ပိတ် ထိန်းချုပ်မည့် State
 
-    /**
-     * Livewire v4 တွင် Event ကို Listen လုပ်ရန် #[On] Attribute ကို သုံးပါသည်
-     */
+    public function toggleFilter()
+    {
+        $this->showFilter = !$this->showFilter;
+    }
+
     #[On('categorySelected')]
     public function setCategory($category)
     {
@@ -22,8 +25,8 @@ class FloatingCategoryFilters extends Component
     public function filterCategory($category)
     {
         $this->selectedCategory = $category;
+        $this->showFilter = false; // Category တစ်ခုခု နှိပ်လိုက်ပါက Menu အလိုအလျောက် ပြန်ပိတ်သွားမည်
         
-        // Livewire v4 standard စံနှုန်းအတိုင်း Event dispatch လုပ်ခြင်း
         $this->dispatch('filter-by-category', category: $category);
     }
 

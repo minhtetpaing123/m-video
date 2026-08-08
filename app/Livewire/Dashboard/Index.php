@@ -15,6 +15,24 @@ class Index extends Component
 
     public $notification = null;
     public $restoredPostId = null;
+    public $pinnedPostId = null;
+
+    // 🟢 စတင်ချိန်တွင် Post ၁၀ ခုပြမည်
+    public $perPage = 10;
+
+    // 🟢 Scroll အောက်ရောက်ပါက နောက်ထပ် 10 ခု ထပ်တိုးမည်
+    public function loadMore()
+    {
+        $this->perPage += 10;
+    }
+
+    #[On('pin-post-to-top')]
+    public function pinPost($postId = null)
+    {
+        $this->pinnedPostId = is_array($postId) ? ($postId['postId'] ?? null) : $postId;
+        $this->perPage = 10;
+        $this->resetPage();
+    }
 
     #[On('notify')]
     public function showNotification($data = null)
@@ -67,20 +85,31 @@ class Index extends Component
     #[On('post-deleted')]
     public function handlePostDeleted($postId = null)
     {
-        // Toast ဆက်ပေါ်နေမှာပါ
+        // Toast
     }
 
     #[On('post-created')]
+    #[On('user-blocked')]
+    #[On('refresh-feed')]
     public function refreshPosts()
     {
+        $this->perPage = 10;
         $this->resetPage();
     }
 
     public function render()
     {
+        $blockedIds = auth()->check() ? auth()->user()->blocked_user_ids : [];
+
         $posts = Post::with('user')
+                    ->when(!empty($blockedIds), function ($query) use ($blockedIds) {
+                        $query->whereNotIn('user_id', $blockedIds);
+                    })
+                    ->when($this->pinnedPostId, function ($query) {
+                        $query->orderByRaw("FIELD(id, ?) DESC", [$this->pinnedPostId]);
+                    })
                     ->latest()
-                    ->paginate(10);
+                    ->paginate($this->perPage);
 
         return view('livewire.dashboard.index', [
             'posts' => $posts

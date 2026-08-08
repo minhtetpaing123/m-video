@@ -3,6 +3,8 @@ import forms from '@tailwindcss/forms';
 
 /** @type {import('tailwindcss').Config} */
 export default {
+    darkMode: 'class', // <--- ⚡ ဒီနေရာမှာ Dark Mode Class ကို ဖြည့်သွင်းပေးလိုက်ပါတယ်
+
     content: [
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './storage/framework/views/*.php',
@@ -10,6 +12,10 @@ export default {
         
         // Add these lines if you have components
         './resources/views/components/**/*.blade.php',
+        
+        // Livewire Paths
+        './app/Livewire/**/*.php',
+        './app/Http/Livewire/**/*.php',
         
         // Or use this to include everything
         './resources/**/*.blade.php',

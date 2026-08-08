@@ -25,6 +25,7 @@ use App\Livewire\Post\Feed as VideoShow;
 use App\Livewire\Dashboard\Index as DashboardIndex;
 use App\Livewire\Profile\Show as ProfileShow;
 use App\Livewire\Profile\Settings as ProfileSettings;
+use App\Livewire\Profile\EditProfileModal;
 use App\Livewire\Post\Edit as PostEdit;
 use App\Livewire\Home\Home as LivewireHome;
 use App\Livewire\Post\Download as PostDownload;
@@ -39,6 +40,11 @@ use App\Livewire\Auth\ResetPassword as ResetPasswordLivewire;
 use App\Livewire\Settings\Setting as SettingsLivewire;
 use App\Livewire\Chat\Chat;
 use App\Livewire\Chat\ChatList;
+use App\Livewire\Notification\NotificationsPage;
+use App\Livewire\Settings\NotificationSettings;
+use App\Livewire\Dashboard\Post\SavedPosts;
+use App\Livewire\Friend\Friend as FriendLivewire;
+use App\Livewire\Friend\BlockedList;
 
 // ============================================
 // ✅ GUEST ROUTES (Livewire Auth System)
@@ -49,7 +55,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/forgot-password', ForgotPasswordLivewire::class)->name('password.request');
     Route::get('/reset-password/{token}', ResetPasswordLivewire::class)->name('password.reset');
 
-    // AJAX/Form POST Login support (Optional)
+    // AJAX/Form POST Login support
     Route::post('/login', function (Request $request) {
         $loginValue = trim($request->login);
         $password = $request->password;
@@ -95,23 +101,30 @@ Route::get('/video/{path}', [VideoController::class, 'stream'])
     ->where('path', '.*')
     ->name('video.stream');
 
-// Public Video & Profile Views
+// Public Video
 Route::get('/posts/{post}', VideoShow::class)->name('posts.show');
-Route::get('/profile/{user}', ProfileShow::class)->name('profile.show');
 
 // ============================================
 // ✅ AUTHENTICATED ROUTES
 // ============================================
 Route::middleware(['auth', 'verified'])->group(function () {
     
-    // Profile & Settings
+    // Profile Edit & Settings (Must be ABOVE /profile/{user})
     Route::get('/profile/settings', ProfileSettings::class)->name('profile.settings');
+    Route::get('/profile/edit', EditProfileModal::class)->name('profile.edit');
     
+    Route::get('/settings/notifications', NotificationSettings::class)->name('settings.notifications');
+    Route::get('/settings/blocked-users', BlockedList::class)->name('settings.blocked-users');
+
+    // Friends
+    Route::get('/friends', FriendLivewire::class)->name('friends');
+
     // Dashboard & Posts
     Route::get('/dashboard', DashboardIndex::class)->name('dashboard');
     Route::get('/post/create', CreatePost::class)->name('post.create.post');
     Route::get('/posts/{post}/edit', PostEdit::class)->name('posts.edit');
     Route::get('/user/{user}/posts', [PostController::class, 'userPosts'])->name('user.posts');
+    Route::get('/saved', SavedPosts::class)->name('saved');
     
     // Post Actions
     Route::put('/posts/{post}', [PostCrudController::class, 'update'])->name('posts.update');
@@ -141,12 +154,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/posts/{post}/comments', [CommentController::class, 'index'])->name('comments.index');
     
     // Notifications
-    Route::get('/noti', [NotificationController::class, 'index'])->name('noti');
+    Route::get('/noti', NotificationsPage::class)->name('noti');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
     
-    // ✅ Chat Routes
+    // Chat Routes
     Route::get('/chat', ChatList::class)->name('chat.index');
     Route::get('/chat/{userId}', Chat::class)->name('chat.show');
     
@@ -158,6 +171,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return redirect('/login');
     })->name('logout');
 });
+
+// ✅ Dynamic Profile Show Route (Must be placed AFTER /profile/edit)
+Route::get('/profile/{user}', ProfileShow::class)->name('profile.show');
 
 // ============================================
 // ✅ API ROUTES

@@ -2,16 +2,16 @@
     
     {{-- Category Badge --}}
     @if($post->category)
-        <div class="absolute top-3 left-3 z-30 select-none pointer-events-none">
+        <div class="absolute top-3 left-3 z-10 select-none pointer-events-none">
             <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white bg-blue-600/90 rounded-full shadow-md backdrop-blur-md">
-                ❤️ {{ $post->category_label ?? $post->category }}
+                 {{ $post->category_label ?? $post->category }}
             </span>
         </div>
     @endif
 
     {{-- Video/Image Content --}}
     @if($post->video_url)
-        <div class="w-full h-full relative">
+        <div class="w-full h-full relative z-0">
             <livewire:player.video-player :post="$post" :key="'player-'.$post->id" />
         </div>
     @elseif($post->image)

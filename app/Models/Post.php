@@ -373,4 +373,17 @@ class Post extends Model
             }
         });
     }
+  public function savedByUsers()
+{
+    return $this->belongsToMany(User::class, 'saved_posts')->withTimestamps();
+}
+
+public function isSavedBy(?User $user = null): bool
+{
+    $user = $user ?? auth()->user();
+    if (!$user) return false;
+
+    return $this->savedByUsers()->where('user_id', $user->id)->exists();
+}
+
 }

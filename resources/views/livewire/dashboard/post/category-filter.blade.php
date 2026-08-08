@@ -1,1 +1,0 @@
-<x-floating-category-filters />
